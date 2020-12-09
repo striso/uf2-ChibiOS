@@ -1,0 +1,6 @@
+[submodule "ChibiOS"]
+	path = ChibiOS
+	url = ./ChibiOS
+[submodule "ChibiOS-Contrib"]
+	path = ChibiOS-Contrib
+	url = ./ChibiOS-Contrib/

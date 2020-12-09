@@ -1,0 +1,6 @@
+*~
+.dep/
+build/
+releases/
+*.tmp
+.git_version
