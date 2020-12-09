@@ -88,7 +88,7 @@ endif
 #
 
 # Define project name here
-PROJECT = ch
+PROJECT = bootloader
 
 # Target settings.
 MCU  = cortex-m7
