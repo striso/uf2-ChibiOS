@@ -29,11 +29,16 @@
 /* Module constants.                                                         */
 /*===========================================================================*/
 
-#define PORTAB_USB1                 USBD1
+#define USBDEVICESTRING BOARD_NAME
+#define USBMFGSTRING "Striso"
+#define BOARD_FLASH_SECTORS 8
+#define BOARD_FLASH_SIZE (1024 * 1024)
 
-#define PORTAB_SDU1                 SDU1
+// #define PORTAB_USB1                 USBD1
 
-#define PORTAB_BLINK_LED1           LINE_LED1
+// #define PORTAB_SDU1                 SDU1
+
+// #define PORTAB_BLINK_LED1           LINE_LED1
 
 /*===========================================================================*/
 /* Module pre-compile time settings.                                         */

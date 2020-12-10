@@ -15,16 +15,17 @@
 */
 
 /**
- * @file    ramdisk.c
+ * @file    ghostdisk.c
  * @brief   Virtual block devise driver source.
  *
- * @addtogroup ramdisk
+ * @addtogroup ghostdisk
  * @{
  */
 
 #include "hal.h"
 
-#include "ramdisk.h"
+#include "ghostdisk.h"
+#include "ghostfat.h"
 
 #include <string.h>
 
@@ -47,7 +48,7 @@
 /*
  * Interface implementation.
  */
-static bool overflow(const RamDisk *rd, uint32_t startblk, uint32_t n) {
+static bool overflow(const GhostDisk *rd, uint32_t startblk, uint32_t n) {
   return (startblk + n) > rd->blk_num;
 }
 
@@ -57,7 +58,7 @@ static bool is_inserted(void *instance) {
 }
 
 static bool is_protected(void *instance) {
-  RamDisk *rd = instance;
+  GhostDisk *rd = instance;
   if (BLK_READY == rd->state) {
     return rd->readonly;
   }
@@ -67,7 +68,7 @@ static bool is_protected(void *instance) {
 }
 
 static bool connect(void *instance) {
-  RamDisk *rd = instance;
+  GhostDisk *rd = instance;
   if (BLK_STOP == rd->state) {
     rd->state = BLK_READY;
   }
@@ -75,7 +76,7 @@ static bool connect(void *instance) {
 }
 
 static bool disconnect(void *instance) {
-  RamDisk *rd = instance;
+  GhostDisk *rd = instance;
   if (BLK_STOP != rd->state) {
     rd->state = BLK_STOP;
   }
@@ -85,14 +86,14 @@ static bool disconnect(void *instance) {
 static bool read(void *instance, uint32_t startblk,
                  uint8_t *buffer, uint32_t n) {
 
-  RamDisk *rd = instance;
+  // assert n == 1
+  GhostDisk *rd = instance;
 
   if (overflow(rd, startblk, n)) {
     return HAL_FAILED;
   }
   else {
-    const uint32_t bs = rd->blk_size;
-    memcpy(buffer, &rd->storage[startblk * bs], n * bs);
+    read_block(startblk, buffer);
     return HAL_SUCCESS;
   }
 }
@@ -100,20 +101,20 @@ static bool read(void *instance, uint32_t startblk,
 static bool write(void *instance, uint32_t startblk,
                 const uint8_t *buffer, uint32_t n) {
 
-  RamDisk *rd = instance;
+  // assert n == 1
+  GhostDisk *rd = instance;
   if (overflow(rd, startblk, n)) {
     return HAL_FAILED;
   }
   else {
-    const uint32_t bs = rd->blk_size;
-    memcpy(&rd->storage[startblk * bs], buffer, n * bs);
+    write_block(startblk, buffer);
     return HAL_SUCCESS;
   }
 }
 
 static bool sync(void *instance) {
 
-  RamDisk *rd = instance;
+  GhostDisk *rd = instance;
   if (BLK_READY != rd->state) {
     return HAL_FAILED;
   }
@@ -124,7 +125,7 @@ static bool sync(void *instance) {
 
 static bool get_info(void *instance, BlockDeviceInfo *bdip) {
 
-  RamDisk *rd = instance;
+  GhostDisk *rd = instance;
   if (BLK_READY != rd->state) {
     return HAL_FAILED;
   }
@@ -159,30 +160,29 @@ static const struct BaseBlockDeviceVMT vmt = {
 /*===========================================================================*/
 
 /**
- * @brief   RAM disk object initialization.
+ * @brief   Ghost disk object initialization.
  *
- * @param[in] rdp   pointer to @p RamDisk object
+ * @param[in] rdp   pointer to @p GhostDisk object
  *
  * @init
  */
-void ramdiskObjectInit(RamDisk *rdp) {
+void ghostdiskObjectInit(GhostDisk *rdp) {
 
   rdp->vmt = &vmt;
   rdp->state = BLK_STOP;
 }
 
 /**
- * @brief   Starts RAM disk.
+ * @brief   Starts Ghost disk.
  *
- * @param[in] rdp       pointer to @p RamDisk object
- * @param[in] storage   pointer to array representing disk storage
+ * @param[in] rdp       pointer to @p GhostDisk object
  * @param[in] blksize   size of blocks in bytes
  * @param[in] blknum    total number of blocks in device
  * @param[in] readonly  read only flag
  *
  * @api
  */
-void ramdiskStart(RamDisk *rdp, uint8_t *storage, uint32_t blksize,
+void ghostdiskStart(GhostDisk *rdp, uint32_t blksize,
                   uint32_t blknum, bool readonly) {
 
   osalDbgCheck(rdp != NULL);
@@ -193,26 +193,24 @@ void ramdiskStart(RamDisk *rdp, uint8_t *storage, uint32_t blksize,
   rdp->blk_num  = blknum;
   rdp->blk_size = blksize;
   rdp->readonly = readonly;
-  rdp->storage  = storage;
   rdp->state    = BLK_READY;
   osalSysUnlock();
 }
 
 /**
- * @brief   Stops RAM disk.
+ * @brief   Stops Ghost disk.
  *
- * @param[in] rdp       pointer to @p RamDisk object
+ * @param[in] rdp       pointer to @p GhostDisk object
  *
  * @api
  */
-void ramdiskStop(RamDisk *rdp) {
+void ghostdiskStop(GhostDisk *rdp) {
 
   osalDbgCheck(rdp != NULL);
 
   osalSysLock();
   osalDbgAssert((rdp->state == BLK_STOP) || (rdp->state == BLK_READY),
                 "invalid state");
-  rdp->storage = NULL;
   rdp->state = BLK_STOP;
   osalSysUnlock();
 }

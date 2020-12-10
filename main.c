@@ -23,11 +23,13 @@
 #include "usbcfg.h"
 #include "hal_usb_msd.h"
 
-#include "ramdisk.h"
-#include "romfs_img.h"
+#include "portab.h"
 
-#define RAMDISK_BLOCK_SIZE    512U
-#define RAMDISK_BLOCK_CNT     700U
+#include "uf2.h"
+#include "ghostdisk.h"
+
+#define GHOSTDISK_BLOCK_SIZE    512U
+#define GHOSTDISK_BLOCK_CNT     UF2_NUM_BLOCKS
 
 /*
  * Red LED blinker thread, times are in milliseconds.
@@ -48,9 +50,8 @@ static THD_FUNCTION(Thread1, arg) {
   }
 }
 
-RamDisk ramdisk;
-__attribute__((section("DATA_RAM"))) static uint8_t ramdisk_storage[RAMDISK_BLOCK_SIZE * RAMDISK_BLOCK_CNT];
-static uint8_t blkbuf[RAMDISK_BLOCK_SIZE];
+GhostDisk ghostdisk;
+static uint8_t blkbuf[GHOSTDISK_BLOCK_SIZE];
 
 BaseSequentialStream *GlobalDebugChannel;
 
@@ -89,20 +90,17 @@ int main(void) {
   usbStart(&USBD1, &usbcfg);
 
   /*
-   * start RAM disk
+   * start Ghost Disk
    */
-  ramdiskObjectInit(&ramdisk);
-  memset(ramdisk_storage, 0x55, sizeof(ramdisk_storage));
-  osalDbgCheck(sizeof(ramdisk_storage) >= romfs_bin_len);
-  memcpy(ramdisk_storage, romfs_bin, romfs_bin_len);
-  ramdiskStart(&ramdisk, ramdisk_storage, RAMDISK_BLOCK_SIZE,
-               RAMDISK_BLOCK_CNT, false);
+  ghostdiskObjectInit(&ghostdisk);
+  ghostdiskStart(&ghostdisk, GHOSTDISK_BLOCK_SIZE,
+                 GHOSTDISK_BLOCK_CNT, false);
 
   /*
    * start mass storage
    */
   msdObjectInit(&USBMSD1);
-  msdStart(&USBMSD1, &USBD1, (BaseBlockDevice *)&ramdisk, blkbuf, NULL, NULL);
+  msdStart(&USBMSD1, &USBD1, (BaseBlockDevice *)&ghostdisk, blkbuf, NULL, NULL);
 
   /*
    *

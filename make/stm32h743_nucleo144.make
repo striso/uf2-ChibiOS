@@ -126,9 +126,10 @@ LDSCRIPT= $(STARTUPLD)/STM32H743xI.ld
 # setting.
 CSRC = $(ALLCSRC) \
        $(TESTSRC) \
-       $(CHIBIOS_CONTRIB)/os/various/ramdisk.c \
        $(CHIBIOS_CONTRIB)/os/various/lib_scsi.c \
        usbcfg.c \
+       ghostdisk.c \
+       ghostfat.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global

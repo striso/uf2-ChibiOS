@@ -15,15 +15,15 @@
 */
 
 /**
- * @file    ramdisk.h
+ * @file    ghostdisk.h
  * @brief   Virtual block devise driver header.
  *
- * @addtogroup ramdisk
+ * @addtogroup ghostdisk
  * @{
  */
 
-#ifndef RAMDISK_H_
-#define RAMDISK_H_
+#ifndef GHOSTDISK_H_
+#define GHOSTDISK_H_
 
 /*===========================================================================*/
 /* Driver constants.                                                         */
@@ -41,14 +41,13 @@
 /* Driver data structures and types.                                         */
 /*===========================================================================*/
 
-typedef struct RamDisk RamDisk;
+typedef struct GhostDisk GhostDisk;
 
 /**
  *
  */
-#define _ramdisk_device_data                                                \
+#define _ghostdisk_device_data                                                \
   _base_block_device_data                                                   \
-  uint8_t       *storage;                                                   \
   uint32_t      blk_size;                                                   \
   uint32_t      blk_num;                                                    \
   bool          readonly;
@@ -56,10 +55,10 @@ typedef struct RamDisk RamDisk;
 /**
  *
  */
-struct RamDisk {
+struct GhostDisk {
   /** @brief Virtual Methods Table.*/
   const struct BaseBlockDeviceVMT *vmt;
-  _ramdisk_device_data
+  _ghostdisk_device_data
 };
 
 /*===========================================================================*/
@@ -73,14 +72,14 @@ struct RamDisk {
 #ifdef __cplusplus
 extern "C" {
 #endif
-  void ramdiskObjectInit(RamDisk *rdp);
-  void ramdiskStart(RamDisk *rdp, uint8_t *storage, uint32_t blksize,
+  void ghostdiskObjectInit(GhostDisk *rdp);
+  void ghostdiskStart(GhostDisk *rdp, uint32_t blksize,
                     uint32_t blknum, bool readonly);
-  void ramdiskStop(RamDisk *rdp);
+  void ghostdiskStop(GhostDisk *rdp);
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* RAMDISK_H_ */
+#endif /* GHOSTDISK_H_ */
 
 /** @} */

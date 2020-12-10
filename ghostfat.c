@@ -22,10 +22,10 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
 
-#include "bl.h"
-
+#include "hal.h"
+#include "portab.h"
+#include "uf2.h"
 #include <string.h>
-#include <libopencm3/cm3/scb.h>
 
 typedef struct {
     uint8_t JumpInstruction[3];
@@ -81,8 +81,11 @@ size_t fileLength(const char *s) {
     return (s - s0) - 1;
 }
 
+#define DMESG(...) ((void)0)
 //#define DBG NOOP
 #define DBG DMESG
+
+#define VALID_FLASH_ADDR(addr, sz) (USER_FLASH_START <= (addr) && (addr) + (sz) <= USER_FLASH_END)
 
 struct TextFile {
     const char name[11];
@@ -341,7 +344,7 @@ static void write_block_core(uint32_t block_no, const uint8_t *data, bool quiet,
     } else {
         // logval("write block at", bl->targetAddr);
         DBG("Write block at %x", bl->targetAddr);
-        flash_write(bl->targetAddr, bl->data, bl->payloadSize);
+        // TODO: flash_write(bl->targetAddr, bl->data, bl->payloadSize);
     }
 
     bool isSet = false;
