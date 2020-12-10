@@ -301,6 +301,7 @@ int read_block(uint32_t block_no, uint8_t *data) {
             sectionIdx -= NUM_INFO - 1;
             uint32_t addr = sectionIdx * 256;
             if (addr < flashSize()) {
+                addr += 0x08000000;
                 // Send CURRENT.UF2 file
                 UF2_Block *bl = (void *)data;
                 bl->magicStart0 = UF2_MAGIC_START0;
@@ -308,15 +309,17 @@ int read_block(uint32_t block_no, uint8_t *data) {
                 bl->magicEnd = UF2_MAGIC_END;
                 bl->blockNo = sectionIdx;
                 bl->numBlocks = flashSize() / 256;
-                bl->targetAddr = 0x08000000 + addr;
+                bl->targetAddr = addr;
                 bl->payloadSize = 256;
                 memcpy(bl->data, (void *)addr, bl->payloadSize);
             } else {
                 // Send CONFIG.BIN
                 sectionIdx -= UF2_SECTORS;
                 addr = sectionIdx * 512;
-                if (addr < CFGBIN_SIZE)
+                if (addr < CFGBIN_SIZE) {
+                    addr += 0x08000000;
                     memcpy(data, (void *)addr, 512);
+                }
             }
         }
     }
