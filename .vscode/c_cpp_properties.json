@@ -4,7 +4,7 @@
             "name": "Linux",
             "includePath": [
                 ".",
-                "cfg/stm32h743_nucleo144",
+                "cfg/strisoboard_v2",
                 "board",
                 "ChibiOS/os/license",
                 "ChibiOS/os/common/portability/GCC",
