@@ -120,7 +120,8 @@ static const struct TextFile info[] = {
 #endif
     // files below are custom handled
     {.name = "CURRENT UF2"},
-    {.name = "CONFIG  BIN"},
+    {.name = "CONFIG  UF2"},
+    // {.name = "CONFIG  HTM"},
 };
 #define NUM_INFO (int)(sizeof(info) / sizeof(info[0]) - 1)
 
@@ -265,12 +266,23 @@ int read_block(uint32_t block_no, uint8_t *data) {
 
                 memcpy(bl->data, (void *)addr, bl->payloadSize);
             } else {
-                // Send CONFIG.BIN
+                // Send CONFIG.UF2
                 sectionIdx -= UF2_SECTORS;
-                addr = sectionIdx * 512;
+                addr = sectionIdx * 256;
                 if (addr < CFGBIN_SIZE) {
-                    addr += 0x08000000;
-                    memcpy(data, (void *)addr, 512);
+                    addr += 0x08020000;
+                    UF2_Block *bl = (void *)data;
+                    bl->magicStart0 = UF2_MAGIC_START0;
+                    bl->magicStart1 = UF2_MAGIC_START1;
+                    bl->flags = UF2_FLAG_FAMILYID_PRESENT;
+                    bl->targetAddr = addr;
+                    bl->payloadSize = 256;
+                    bl->blockNo = sectionIdx;
+                    bl->numBlocks = CFGBIN_SIZE / 256;
+                    bl->familyID = UF2_FAMILY;
+                    bl->magicEnd = UF2_MAGIC_END;
+
+                    memcpy(bl->data, (void *)addr, bl->payloadSize);
                 }
             }
         }
