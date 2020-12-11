@@ -27,6 +27,7 @@
 
 #include "uf2.h"
 #include "ghostdisk.h"
+#include "ghostfat.h"
 
 #define GHOSTDISK_BLOCK_SIZE    512U
 #define GHOSTDISK_BLOCK_CNT     UF2_NUM_BLOCKS
@@ -43,9 +44,9 @@ static THD_FUNCTION(Thread1, arg) {
     systime_t time;
 
     time = USBD1.state == USB_ACTIVE ? 100 : 500;
-    palSetLine(LINE_LED1);
+    palSetLine(PORTAB_BLINK_LED);
     chThdSleepMilliseconds(time);
-    palClearLine(LINE_LED1);
+    palClearLine(PORTAB_BLINK_LED);
     chThdSleepMilliseconds(time);
   }
 }
@@ -117,7 +118,8 @@ int main(void) {
    * sleeping in a loop and check the button state.
    */
   while (true) {
-    chThdSleepMilliseconds(1000);
+    chThdSleepMilliseconds(1);
+    ghostfat_1ms();
   }
 
   msdStop(&USBMSD1);

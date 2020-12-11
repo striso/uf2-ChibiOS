@@ -38,7 +38,8 @@
 
 // #define PORTAB_SDU1                 SDU1
 
-// #define PORTAB_BLINK_LED1           LINE_LED1
+#define PORTAB_BLINK_LED            LINE_LED1
+#define PORTAB_STATUS_LED           LINE_LED3
 
 /*===========================================================================*/
 /* Module pre-compile time settings.                                         */

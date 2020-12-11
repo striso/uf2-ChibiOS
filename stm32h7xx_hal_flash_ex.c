@@ -74,7 +74,8 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32h7xx_hal.h"
+#include "stm32h7xx_hal_flash_ex.h"
+#include "stm32h7xx_hal_flash.h"
 
 /** @addtogroup STM32H7xx_HAL_Driver
   * @{
@@ -85,7 +86,7 @@
   * @{
   */
 
-#ifdef HAL_FLASH_MODULE_ENABLED
+// #ifdef HAL_FLASH_MODULE_ENABLED
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -1850,7 +1851,7 @@ static uint32_t FLASH_OB_CPUFreq_GetBoost(void)
 }
 #endif /* FLASH_OPTSR2_CPUFREQ_BOOST */
 
-#endif /* HAL_FLASH_MODULE_ENABLED */
+// #endif /* HAL_FLASH_MODULE_ENABLED */
 
 /**
   * @}

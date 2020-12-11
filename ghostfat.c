@@ -25,6 +25,7 @@ DEALINGS IN THE SOFTWARE.
 #include "hal.h"
 #include "portab.h"
 #include "uf2.h"
+#include "flash.h"
 #include <string.h>
 
 typedef struct {
@@ -164,72 +165,20 @@ static const FAT_BootBlock BootBlock = {
 static uint32_t resetTime;
 static uint32_t ms;
 
-#ifdef FLASH_PAGE_SIZE
-#define NO_CACHE 0xffffffff
-static uint32_t flashAddr = NO_CACHE;
-static uint8_t flashBuf[FLASH_PAGE_SIZE] __attribute__((aligned(4)));
-static bool firstFlush = true;
-static uint32_t lastFlush;
-
-void flushFlash(void) {
-    lastFlush = ms;
-    if (flashAddr == NO_CACHE)
-        return;
-
-    if (firstFlush) {
-        firstFlush = false;
-
-        // disable bootloader or something
-    }
-
-    DBG("Flush at %x", flashAddr);
-    if (memcmp(flashBuf, (void *)flashAddr, FLASH_PAGE_SIZE) != 0) {
-        DBG("Write flush at %x", flashAddr);
-
-        target_flash_unlock();
-        bool ok =
-            target_flash_program_array((void *)flashAddr, (void *)flashBuf, FLASH_PAGE_SIZE / 2);
-        target_flash_lock();
-        (void)ok;
-    }
-
-    flashAddr = NO_CACHE;
-}
-
-void flash_write(uint32_t dst, const uint8_t *src, int len) {
-    uint32_t newAddr = dst & ~(FLASH_PAGE_SIZE - 1);
-
-    if (newAddr != flashAddr) {
-        flushFlash();
-        flashAddr = newAddr;
-        memcpy(flashBuf, (void *)newAddr, FLASH_PAGE_SIZE);
-    }
-    memcpy(flashBuf + (dst & (FLASH_PAGE_SIZE - 1)), src, len);
-}
-#else
-void flushFlash(void) {}
-#endif
 
 static void uf2_timer_start(int delay) {
     resetTime = ms + delay;
 }
 
 // called roughly every 1ms
-void ghostfat_1ms() {
+void ghostfat_1ms(void) {
     ms++;
 
     if (resetTime && ms >= resetTime) {
-        flushFlash();
-        scb_reset_system();
+        NVIC_SystemReset();
         while (1)
             ;
     }
-
-#ifdef FLASH_PAGE_SIZE
-    if (lastFlush && ms - lastFlush > 100) {
-        flushFlash();
-    }
-#endif
 }
 
 static void padded_memcpy(char *dst, const char *src, int len) {
@@ -301,16 +250,19 @@ int read_block(uint32_t block_no, uint8_t *data) {
             sectionIdx -= NUM_INFO - 1;
             uint32_t addr = sectionIdx * 256;
             if (addr < flashSize()) {
-                addr += 0x08000000;
                 // Send CURRENT.UF2 file
+                addr += 0x08000000;
                 UF2_Block *bl = (void *)data;
                 bl->magicStart0 = UF2_MAGIC_START0;
                 bl->magicStart1 = UF2_MAGIC_START1;
-                bl->magicEnd = UF2_MAGIC_END;
-                bl->blockNo = sectionIdx;
-                bl->numBlocks = flashSize() / 256;
+                bl->flags = UF2_FLAG_FAMILYID_PRESENT;
                 bl->targetAddr = addr;
                 bl->payloadSize = 256;
+                bl->blockNo = sectionIdx;
+                bl->numBlocks = flashSize() / 256;
+                bl->familyID = UF2_FAMILY;
+                bl->magicEnd = UF2_MAGIC_END;
+
                 memcpy(bl->data, (void *)addr, bl->payloadSize);
             } else {
                 // Send CONFIG.BIN
@@ -339,6 +291,7 @@ static void write_block_core(uint32_t block_no, const uint8_t *data, bool quiet,
         return;
     }
 
+    palSetLine(PORTAB_STATUS_LED);
     if ((bl->flags & UF2_FLAG_NOFLASH) || bl->payloadSize > 256 || (bl->targetAddr & 0xff) ||
         !VALID_FLASH_ADDR(bl->targetAddr, bl->payloadSize)) {
         DBG("Skip block at %x", bl->targetAddr);
@@ -347,8 +300,10 @@ static void write_block_core(uint32_t block_no, const uint8_t *data, bool quiet,
     } else {
         // logval("write block at", bl->targetAddr);
         DBG("Write block at %x", bl->targetAddr);
-        // TODO: flash_write(bl->targetAddr, bl->data, bl->payloadSize);
+        // TODO: wait with writing APP_LOAD_ADDRESS until last block is written
+        flash_write(bl->targetAddr, bl->data, bl->payloadSize);
     }
+    palClearLine(PORTAB_STATUS_LED);
 
     bool isSet = false;
 

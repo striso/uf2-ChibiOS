@@ -27,8 +27,8 @@
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32h7xx.h"
-#include "Legacy/stm32_hal_legacy.h"
+// #include "stm32h7xx.h"
+// #include "Legacy/stm32_hal_legacy.h"
 #include <stddef.h>
 #include <math.h>
 
@@ -68,6 +68,12 @@ typedef enum
                           } while(0)
 
 #define UNUSED(x) ((void)(x))
+
+#define assert_param     UNUSED
+#define USE_RTOS         0
+
+// TODO: timeouts are disabled now
+#define HAL_GetTick(x)   (0)
 
 /** @brief Reset the Handle's State field.
   * @param __HANDLE__: specifies the Peripheral Handle.

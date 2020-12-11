@@ -86,7 +86,8 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include "stm32h7xx_hal.h"
+// #include "stm32h7xx_hal.h"
+#include "stm32h7xx_hal_flash.h"
 
 /** @addtogroup STM32H7xx_HAL_Driver
   * @{
@@ -97,7 +98,7 @@
   * @{
   */
 
-#ifdef HAL_FLASH_MODULE_ENABLED
+// #ifdef HAL_FLASH_MODULE_ENABLED
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -1164,7 +1165,7 @@ HAL_StatusTypeDef FLASH_CRC_WaitForLastOperation(uint32_t Timeout, uint32_t Bank
   * @}
   */
 
-#endif /* HAL_FLASH_MODULE_ENABLED */
+// #endif /* HAL_FLASH_MODULE_ENABLED */
 
 /**
   * @}
