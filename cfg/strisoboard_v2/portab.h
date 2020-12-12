@@ -38,8 +38,10 @@
 
 // #define PORTAB_SDU1                 SDU1
 
-#define PORTAB_BLINK_LED            LINE_LED1
+#define PORTAB_BLINK_LED            LINE_LED_R
 #define PORTAB_STATUS_LED           LINE_LED_UP
+#define PORTAB_BOOTLOADER_BUTTON    LINE_BUTTON_ALT
+#define PORTAB_BOOTLOADER_BUTTON_PRESSED    0
 
 /*===========================================================================*/
 /* Module pre-compile time settings.                                         */

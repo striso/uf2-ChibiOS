@@ -29,6 +29,8 @@
 #include "ghostdisk.h"
 #include "ghostfat.h"
 
+#include "bootloader.h"
+
 #define GHOSTDISK_BLOCK_SIZE    512U
 #define GHOSTDISK_BLOCK_CNT     UF2_NUM_BLOCKS
 
@@ -67,6 +69,25 @@ static const SerialConfig sercfg = {
  * Application entry point.
  */
 int main(void) {
+  bool try_boot = true;
+
+  /* Check bootloader button */
+  int samples, vote = 0;
+  for (samples = 0; samples < 200; samples++) {
+    if (palReadLine(PORTAB_BOOTLOADER_BUTTON) == PORTAB_BOOTLOADER_BUTTON_PRESSED) {
+      vote++;
+    }
+  }
+  /* reject a little noise */
+  if ((vote * 100) > (samples * 90)) {
+    try_boot = false;
+  }
+
+  // TODO: Check RTC ram for software boot into bootloader
+
+  if (try_boot) {
+    jump_to_app();
+  }
 
   /*
    * System initializations.

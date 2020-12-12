@@ -135,6 +135,7 @@ CSRC = $(ALLCSRC) \
        flash.c \
        stm32h7xx_hal_flash.c \
        stm32h7xx_hal_flash_ex.c \
+       bootloader.c \
        main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
