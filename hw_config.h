@@ -8,10 +8,6 @@
 #define INTERFACE_USB 1
 #define INTERFACE_USART 0
 
-#ifndef APP_LOAD_ADDRESS
-#define APP_LOAD_ADDRESS 0x08040200
-#endif
-
 #define BOARD_USB_VBUS_SENSE_DISABLED
 //# define BOARD_PIN_VBUS                 GPIO5
 //# define BOARD_PORT_VBUS                GPIOC
