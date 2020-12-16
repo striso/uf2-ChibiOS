@@ -99,6 +99,8 @@ int main(void) {
   halInit();
   chSysInit();
 
+  palClearLine(PORTAB_BLINK_LED);
+
   sdStart(&SD3, &sercfg);
   GlobalDebugChannel = (BaseSequentialStream *)&SD3;
 
