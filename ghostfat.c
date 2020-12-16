@@ -67,10 +67,6 @@ typedef struct {
     uint32_t size;
 } __attribute__((packed)) DirEntry;
 
-static size_t flashSize(void) {
-    return BOARD_FLASH_SIZE;
-}
-
 /**
  * Length of text file string, terminated by \0 or invalid utf-8
  * and max 512 bytes long to fit in a single block.
@@ -80,6 +76,50 @@ size_t fileLength(const char *s) {
     while (*s++ && *s < 0xf8 && s <= s0 + 512)
         ;
     return (s - s0) - 1;
+}
+
+typedef struct {
+    uint32_t addr;
+    uint32_t length;
+} FileSegment;
+/**
+ * Size of segmented file
+ */
+size_t segmentedFileLength(uint32_t addr, int n) {
+    FileSegment *f = (FileSegment*)addr;
+    size_t size = 0;
+    for (int i=0; i<n; i++) {
+        if (f[i].addr < USER_FLASH_START || (f[i].addr + f[i].length) >= USER_FLASH_END) {
+            break;
+        } else {
+            size += f[i].length;
+        }
+    }
+    return size;
+}
+
+/**
+ * Get segmented file sector
+ */
+void segmentedFileGetSector(uint32_t addr, int n, int sectorIdx, uint8_t *data) {
+    FileSegment *f = (FileSegment*)addr;
+    unsigned int pfile = 0, psector = 0;
+    unsigned int begin = sectorIdx * 512;
+    unsigned int end = (sectorIdx + 1) * 512;
+    for (int i=0; i<n; i++) {
+        if (f[i].addr < USER_FLASH_START || (f[i].addr + f[i].length) >= USER_FLASH_END) {
+            break;
+        } else {
+            if (pfile < end && (pfile + f[i].length) > begin) {
+                int offset = pfile >= begin ? 0 : begin - pfile;
+                int length = f[i].length - offset;
+                if (psector + length > 512) {length = 512 - psector;}
+                memcpy(data + psector, (void*)(f[i].addr + offset), length);
+                psector += length;
+            }
+            pfile += f[i].length;
+        }
+    }
 }
 
 #define DMESG(...) ((void)0)
@@ -98,7 +138,7 @@ struct TextFile {
 #define STR0(x) #x
 #define STR(x) STR0(x)
 const char infoUf2File[] = //
-    "UF2 Bootloader " UF2_VERSION "\r\n"
+    "ChibiUF2 Bootloader " UF2_VERSION "\r\n"
     "Model: " USBMFGSTRING " / " USBDEVICESTRING "\r\n"
     "Board-ID: " BOARD_ID "\r\n";
 
@@ -112,31 +152,44 @@ const char indexFile[] = //
     "</body>"
     "</html>\n";
 
+// File list
 static const struct TextFile info[] = {
+    // Simple text files, max 512 bytes per file
     {.name = "INFO_UF2TXT", .content = infoUf2File},
     {.name = "INDEX   HTM", .content = indexFile},
 #ifdef FWVERSIONFILE
     {.name = "INFO_FW TXT", .content = (char*)FWVERSIONFILE},
 #endif
-    // files below are custom handled
+    // Custom handled files
     {.name = "CURRENT UF2"},
     {.name = "CONFIG  UF2"},
-    // {.name = "CONFIG  HTM"},
+    {.name = "CONFIG  HTM"},
 };
-#define NUM_INFO (int)(sizeof(info) / sizeof(info[0]) - 1)
+#define NUM_INFO (int)(sizeof(info) / sizeof(info[0]))
+#define START_CUSTOM_FILES (NUM_INFO - 3)
 
-#define UF2_SIZE (flashSize() * 2)
+#define UF2_INDEX START_CUSTOM_FILES
+#define UF2_SIZE (BOARD_FLASH_SIZE * 2)
 #define UF2_SECTORS (UF2_SIZE / 512)
-#define UF2_FIRST_SECTOR (NUM_INFO + 1)
+#define UF2_FIRST_SECTOR (START_CUSTOM_FILES)
 #define UF2_LAST_SECTOR (uint32_t)(UF2_FIRST_SECTOR + UF2_SECTORS - 1)
 
-#define CFGBIN_FIRST_SECTOR (UF2_LAST_SECTOR + 1)
-#define CFGBIN_SIZE (32 * 1024)
+#define CFGBIN_INDEX (START_CUSTOM_FILES + 1)
+#define CFGBIN_SIZE (128 * 1024 * 2)
 #define CFGBIN_SECTORS (CFGBIN_SIZE / 512)
+#define CFGBIN_FIRST_SECTOR (UF2_LAST_SECTOR + 1)
 #define CFGBIN_LAST_SECTOR (CFGBIN_FIRST_SECTOR + CFGBIN_SECTORS - 1)
+
+size_t cfghtm_size;
+#define CFGHTM_INDEX (START_CUSTOM_FILES + 2)
+#define CFGHTM_SIZE cfghtm_size
+#define CFGHTM_SECTORS ((CFGHTM_SIZE + 511) / 512)
+#define CFGHTM_FIRST_SECTOR (CFGBIN_LAST_SECTOR + 1)
+#define CFGHTM_LAST_SECTOR (CFGHTM_FIRST_SECTOR + CFGHTM_SECTORS - 1)
 
 #define RESERVED_SECTORS 1
 #define ROOT_DIR_SECTORS 4
+#define CLUSTER_OFFSET 2
 #define SECTORS_PER_FAT ((NUM_FAT_BLOCKS * 2 + 511) / 512)
 
 #define START_FAT0 RESERVED_SECTORS
@@ -203,7 +256,7 @@ int read_block(uint32_t block_no, uint8_t *data) {
         data[511] = 0xaa;
         // logval("data[0]", data[0]);
     } else if (block_no < START_ROOTDIR) {
-        // Send ?
+        // Send FAT0 or FAT1 (copy)
         sectionIdx -= START_FAT0;
         // logval("sidx", sectionIdx);
         if (sectionIdx >= SECTORS_PER_FAT)
@@ -216,27 +269,37 @@ int read_block(uint32_t block_no, uint8_t *data) {
         }
         for (int i = 0; i < 256; ++i) {
             uint32_t v = sectionIdx * 256 + i;
-            if (UF2_FIRST_SECTOR <= v && v <= UF2_LAST_SECTOR)
-                ((uint16_t *)(void *)data)[i] = v == UF2_LAST_SECTOR ? 0xffff : v + 1;
-            if (CFGBIN_FIRST_SECTOR <= v && v <= CFGBIN_LAST_SECTOR)
-                ((uint16_t *)(void *)data)[i] = v == CFGBIN_LAST_SECTOR ? 0xffff : v + 1;
+            uint32_t sector = v - CLUSTER_OFFSET;
+            if (UF2_FIRST_SECTOR <= sector && sector <= UF2_LAST_SECTOR) {
+                ((uint16_t *)(void *)data)[i] = (sector == UF2_LAST_SECTOR) ? 0xffff : v + 1;
+            } else if (CFGBIN_FIRST_SECTOR <= sector && sector <= CFGBIN_LAST_SECTOR) {
+                ((uint16_t *)(void *)data)[i] = (sector == CFGBIN_LAST_SECTOR) ? 0xffff : v + 1;
+            } else if (CFGHTM_FIRST_SECTOR <= sector && sector <= CFGHTM_LAST_SECTOR) {
+                ((uint16_t *)(void *)data)[i] = (sector == CFGHTM_LAST_SECTOR) ? 0xffff : v + 1;
+            }
         }
     } else if (block_no < START_CLUSTERS) {
-        // Send root dir FAT
+        // Send root dir entry
         sectionIdx -= START_ROOTDIR;
         if (sectionIdx == 0) {
             DirEntry *d = (void *)data;
             padded_memcpy(d->name, (const char *)BootBlock.VolumeLabel, 11);
             d->attrs = 0x28;
-            for (int i = 0; i < NUM_INFO + 1; ++i) {
+            for (int i = 0; i < NUM_INFO; ++i) {
                 d++;
                 const struct TextFile *inf = &info[i];
-                if (i == NUM_INFO) {
+                if (i < START_CUSTOM_FILES) {
+                    d->size = inf->content ? fileLength(inf->content) : 0;
+                    d->startCluster = i + CLUSTER_OFFSET;
+                } else if (i == UF2_INDEX) {
+                    d->size = UF2_SIZE;
+                    d->startCluster = UF2_FIRST_SECTOR + CLUSTER_OFFSET;
+                } else if (i == CFGBIN_INDEX) {
                     d->size = CFGBIN_SIZE;
-                    d->startCluster = CFGBIN_FIRST_SECTOR;
-                } else {
-                    d->size = inf->content ? fileLength(inf->content) : UF2_SIZE;
-                    d->startCluster = i + 2;
+                    d->startCluster = CFGBIN_FIRST_SECTOR + CLUSTER_OFFSET;
+                } else if (i == CFGHTM_INDEX) {
+                    d->size = CFGHTM_SIZE;
+                    d->startCluster = CFGHTM_FIRST_SECTOR + CLUSTER_OFFSET;
                 }
                 padded_memcpy(d->name, inf->name, 11);
             }
@@ -244,46 +307,47 @@ int read_block(uint32_t block_no, uint8_t *data) {
     } else {
         // Send file contents
         sectionIdx -= START_CLUSTERS;
-        if (sectionIdx < NUM_INFO - 1) {
-            // Send file content from info struct
+        if (sectionIdx < START_CUSTOM_FILES) {
+            // Send text file content from info struct (max 1 sector per file)
             memcpy(data, info[sectionIdx].content, fileLength(info[sectionIdx].content));
         } else {
-            sectionIdx -= NUM_INFO - 1;
-            uint32_t addr = sectionIdx * 256;
-            if (addr < flashSize()) {
+            // Custom file handling
+            if (sectionIdx <= UF2_LAST_SECTOR) {
                 // Send CURRENT.UF2 file
-                addr += 0x08000000;
+                uint32_t blockNo = sectionIdx - UF2_FIRST_SECTOR;
+                uint32_t addr = blockNo * 256 + 0x08000000;
                 UF2_Block *bl = (void *)data;
                 bl->magicStart0 = UF2_MAGIC_START0;
                 bl->magicStart1 = UF2_MAGIC_START1;
                 bl->flags = UF2_FLAG_FAMILYID_PRESENT;
                 bl->targetAddr = addr;
                 bl->payloadSize = 256;
-                bl->blockNo = sectionIdx;
-                bl->numBlocks = flashSize() / 256;
+                bl->blockNo = blockNo;
+                bl->numBlocks = BOARD_FLASH_SIZE / 256;
                 bl->familyID = UF2_FAMILY;
                 bl->magicEnd = UF2_MAGIC_END;
 
                 memcpy(bl->data, (void *)addr, bl->payloadSize);
-            } else {
+            } else if (sectionIdx <= CFGBIN_LAST_SECTOR) {
                 // Send CONFIG.UF2
-                sectionIdx -= UF2_SECTORS;
-                addr = sectionIdx * 256;
-                if (addr < CFGBIN_SIZE) {
-                    addr += 0x08020000;
-                    UF2_Block *bl = (void *)data;
-                    bl->magicStart0 = UF2_MAGIC_START0;
-                    bl->magicStart1 = UF2_MAGIC_START1;
-                    bl->flags = UF2_FLAG_FAMILYID_PRESENT;
-                    bl->targetAddr = addr;
-                    bl->payloadSize = 256;
-                    bl->blockNo = sectionIdx;
-                    bl->numBlocks = CFGBIN_SIZE / 256;
-                    bl->familyID = UF2_FAMILY;
-                    bl->magicEnd = UF2_MAGIC_END;
+                uint32_t blockNo = sectionIdx - CFGBIN_FIRST_SECTOR;
+                uint32_t addr = blockNo * 256 + 0x08020000;
+                UF2_Block *bl = (void *)data;
+                bl->magicStart0 = UF2_MAGIC_START0;
+                bl->magicStart1 = UF2_MAGIC_START1;
+                bl->flags = UF2_FLAG_FAMILYID_PRESENT;
+                bl->targetAddr = addr;
+                bl->payloadSize = 256;
+                bl->blockNo = blockNo;
+                bl->numBlocks = CFGBIN_SIZE / 256;
+                bl->familyID = UF2_FAMILY;
+                bl->magicEnd = UF2_MAGIC_END;
 
-                    memcpy(bl->data, (void *)addr, bl->payloadSize);
-                }
+                memcpy(bl->data, (void *)addr, bl->payloadSize);
+            } else if (sectionIdx <= CFGHTM_LAST_SECTOR) {
+                // Send CONFIG.HTM
+                uint32_t blockNo = sectionIdx - CFGHTM_FIRST_SECTOR;
+                segmentedFileGetSector(CONFIGHTM_FILE, CONFIGHTM_SEGMENTS, blockNo, data);
             }
         }
     }
@@ -357,4 +421,8 @@ WriteState wrState;
 int write_block(uint32_t lba, const uint8_t *copy_from) {
     write_block_core(lba, copy_from, false, &wrState);
     return 0;
+}
+
+void ghostfat_init(void) {
+    cfghtm_size = segmentedFileLength(CONFIGHTM_FILE, CONFIGHTM_SEGMENTS);
 }

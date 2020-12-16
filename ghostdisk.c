@@ -187,6 +187,8 @@ void ghostdiskStart(GhostDisk *rdp, uint32_t blksize,
 
   osalDbgCheck(rdp != NULL);
 
+  ghostfat_init();
+
   osalSysLock();
   osalDbgAssert((rdp->state == BLK_STOP) || (rdp->state == BLK_READY),
                 "invalid state");
