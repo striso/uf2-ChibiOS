@@ -1,5 +1,5 @@
 #ifndef UF2_VERSION
-#define UF2_VERSION "2.7.5"
+#define UF2_VERSION "0.9"
 #endif
 #ifndef BOARD_ID
 #define BOARD_ID "Striso board v2.0"
