@@ -165,8 +165,16 @@ CPPWARN = -Wall -Wextra -Wundef
 # Start of user section
 #
 
+# Git revision description, recompile anything depending on uf2cfg.h on version change
+GITVERSION := $(shell git --no-pager show --date=short --format="%ad" --name-only | head -n1)_$(shell git --no-pager describe --tags --always --long --dirty)
+# GITVERSION := $(shell git --no-pager describe --tags --always --long --dirty)
+ifneq ($(GITVERSION), $(shell cat .git_version 2>&1))
+$(shell echo -n $(GITVERSION) > .git_version)
+$(shell touch uf2cfg.h)
+endif
+
 # List all user C define here, like -D_DEBUG=1
-UDEFS =
+UDEFS = -DUF2_VERSION=\"$(GITVERSION)\"
 
 # Define ASM defines here
 UADEFS =
@@ -199,6 +207,15 @@ include $(RULESPATH)/rules.mk
 ##############################################################################
 # Custom rules
 #
+
+prog: all
+	dfu-util -d0483:df11 -a0 -s0x8000000:leave -D $(BUILDDIR)/$(PROJECT).bin
+
+prog_openocd: all
+	openocd -f interface/stlink.cfg -f target/stm32h7x.cfg -c "program $(BUILDDIR)/$(PROJECT).elf reset exit"
+
+version:
+	@echo $(GITVERSION)
 
 #
 # Custom rules
