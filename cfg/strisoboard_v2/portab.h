@@ -31,8 +31,8 @@
 
 #define USBDEVICESTRING BOARD_NAME
 #define USBMFGSTRING "Striso"
-#define BOARD_FLASH_SECTORS 8
-#define BOARD_FLASH_SIZE (1024 * 1024)
+#define BOARD_FLASH_SECTORS 16
+#define BOARD_FLASH_SIZE (2 * 1024 * 1024)
 
 // UF2 Family ID - picked at random
 #define UF2_FAMILY 0xa21e1295 // Striso board v2.0 - STM32H7

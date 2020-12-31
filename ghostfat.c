@@ -326,6 +326,10 @@ int read_block(uint32_t block_no, uint8_t *data) {
                 bl->numBlocks = BOARD_FLASH_SIZE / 256;
                 bl->familyID = UF2_FAMILY;
                 bl->magicEnd = UF2_MAGIC_END;
+                if (addr >= DEVSPEC_FLASH_START) {
+                    // last sector is used to store device specific information, and should not be overwritten accidentally
+                    bl->flags |= UF2_FLAG_NOFLASH;
+                }
 
                 memcpy(bl->data, (void *)addr, bl->payloadSize);
             } else if (sectionIdx <= CFGBIN_LAST_SECTOR) {
