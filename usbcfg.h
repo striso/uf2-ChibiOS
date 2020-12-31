@@ -17,6 +17,13 @@
 #ifndef USBCFG_H
 #define USBCFG_H
 
+#ifndef USB_VID
+#define USB_VID 0x0483  // STMicroelectronics
+#endif
+#ifndef USB_PID
+#define USB_PID 0x5720  // STMicroelectronics Mass Storage Device
+#endif
+
 #define USBD1_DATA_REQUEST_EP           1
 #define USBD1_DATA_AVAILABLE_EP         1
 #define USBD1_INTERRUPT_REQUEST_EP      2

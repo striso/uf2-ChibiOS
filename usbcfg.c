@@ -14,6 +14,7 @@
     limitations under the License.
 */
 
+#include "ch.h"
 #include "hal.h"
 
 #include "hal_usb_cdc.h"
@@ -30,13 +31,13 @@
  */
 static const uint8_t vcom_device_descriptor_data[18] = {
   USB_DESC_DEVICE       (0x0200,        /* bcdUSB (2.0).                    */
-                         0x02,          /* bDeviceClass (CDC).              */
+                         0x00,          /* bDeviceClass.                    */
                          0x00,          /* bDeviceSubClass.                 */
                          0x00,          /* bDeviceProtocol.                 */
                          0x40,          /* bMaxPacketSize.                  */
-                         0x0483,        /* idVendor (ST).                   */
-                         0x5740,        /* idProduct.                       */
-                         0x0200,        /* bcdDevice.                       */
+                         USB_VID,       /* idVendor.                        */
+                         USB_PID,       /* idProduct.                       */
+                         0x0100,        /* bcdDevice.                       */
                          1,             /* iManufacturer.                   */
                          2,             /* iProduct.                        */
                          3,             /* iSerialNumber.                   */
@@ -51,15 +52,15 @@ static const USBDescriptor vcom_device_descriptor = {
   vcom_device_descriptor_data
 };
 
-/* Configuration Descriptor tree for a CDC.*/
+/* Configuration Descriptor tree.*/
 static const uint8_t vcom_configuration_descriptor_data[67] = {
     /* Configuration Descriptor.*/
     USB_DESC_CONFIGURATION(0x0020,        /* wTotalLength.                    */
                            0x01,          /* bNumInterfaces.                  */
                            0x01,          /* bConfigurationValue.             */
                            0,             /* iConfiguration.                  */
-                           0xC0,          /* bmAttributes (self powered).     */
-                           0x32),         /* bMaxPower (100mA).               */
+                           0x80,          /* bmAttributes (bus powered).      */
+                           50),           /* bMaxPower in 2mA units (100mA).  */
     /* Interface Descriptor.*/
     USB_DESC_INTERFACE    (0x00,          /* bInterfaceNumber.                */
                            0x00,          /* bAlternateSetting.               */
@@ -113,21 +114,26 @@ static const uint8_t vcom_string1[] = {
  * Device Description string.
  */
 static const uint8_t vcom_string2[] = {
-  USB_DESC_BYTE(62),                    /* bLength.                         */
+  USB_DESC_BYTE(42),                    /* bLength.                         */
   USB_DESC_BYTE(USB_DESCRIPTOR_STRING), /* bDescriptorType.                 */
-  'C', 0, 'h', 0, 'i', 0, 'b', 0, 'i', 0, 'O', 0, 'S', 0, '/', 0,
-  'R', 0, 'T', 0, ' ', 0, 'M', 0, 'a', 0, 's', 0, 's', 0, ' ', 0,
-  'S', 0, 't', 0, 'o', 0, 'r', 0, 'a', 0, 'g', 0, 'e', 0, ' ', 0,
-  'D', 0, 'e', 0, 'v', 0, 'i', 0, 'c', 0, 'e', 0
+  'C', 0, 'h', 0, 'i', 0, 'b', 0, 'i', 0, 'U', 0, 'F', 0, '2', 0,
+  ' ', 0, 'B', 0, 'o', 0, 'o', 0, 't', 0, 'l', 0, 'o', 0, 'a', 0,
+  'd', 0, 'e', 0, 'r', 0, 'r', 0
 };
 
-static const uint8_t vcom_string3[] = {
-  USB_DESC_BYTE(26),                      /* bLength.                       */
-  USB_DESC_BYTE(USB_DESCRIPTOR_STRING),   /* bDescriptorType.               */
-  'A', 0, 'E', 0, 'C', 0, 'C', 0, 'E', 0, 'C', 0, 'C', 0, 'C', 0, 'C', 0,
-  '0' + CH_KERNEL_MAJOR, 0,
-  '0' + CH_KERNEL_MINOR, 0,
-  '0' + CH_KERNEL_PATCH, 0
+static uint8_t descriptor_serial_string[] = {
+  USB_DESC_BYTE(50),                    /* bLength.                         */
+  USB_DESC_BYTE(USB_DESCRIPTOR_STRING), /* bDescriptorType.                 */
+  '0', 0, '0', 0, '0', 0, '0', 0,
+  '0', 0, '0', 0, '0', 0, '0', 0,
+  '0', 0, '0', 0, '0', 0, '0', 0,
+  '0', 0, '0', 0, '0', 0, '0', 0,
+  '0', 0, '0', 0, '0', 0, '0', 0,
+  '0', 0, '0', 0, '0', 0, '0', 0
+};
+
+static const USBDescriptor descriptor_serial = {
+   sizeof descriptor_serial_string, descriptor_serial_string,
 };
 
 /*
@@ -137,8 +143,19 @@ static const USBDescriptor vcom_strings[] = {
   {sizeof vcom_string0, vcom_string0},
   {sizeof vcom_string1, vcom_string1},
   {sizeof vcom_string2, vcom_string2},
-  {sizeof vcom_string3, vcom_string3}
+  {sizeof descriptor_serial_string, descriptor_serial_string}
 };
+
+void inttohex(uint32_t v, unsigned char *p){
+  int nibble;
+  for (nibble = 0;nibble<8;nibble++){
+    unsigned char c = (v>>(28-nibble*4))&0xF;
+    if (c<10) c=c+'0';
+    else c=c+'A'-10;
+    *p = c;
+    p += 2;
+  }
+}
 
 /*
  * Handles the GET_DESCRIPTOR callback. All required descriptors must be
@@ -148,7 +165,6 @@ static const USBDescriptor *get_descriptor(USBDriver *usbp,
                                            uint8_t dtype,
                                            uint8_t dindex,
                                            uint16_t lang) {
-
   (void)usbp;
   (void)lang;
   switch (dtype) {
@@ -157,6 +173,13 @@ static const USBDescriptor *get_descriptor(USBDriver *usbp,
   case USB_DESCRIPTOR_CONFIGURATION:
     return &vcom_configuration_descriptor;
   case USB_DESCRIPTOR_STRING:
+    if (dindex == 3) {
+      // use microcontroller unique ID as serial number
+      inttohex(((uint32_t*)UID_BASE)[0],&descriptor_serial_string[2]);
+      inttohex(((uint32_t*)UID_BASE)[1],&descriptor_serial_string[2+16]);
+      inttohex(((uint32_t*)UID_BASE)[2],&descriptor_serial_string[2+32]);
+      return &descriptor_serial;
+    }
     if (dindex < 4)
       return &vcom_strings[dindex];
   }
