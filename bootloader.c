@@ -55,31 +55,17 @@ void jump_to_app() {
   Jump_To_Application();
 }
 
-// static uint32_t board_get_rtc_signature(uint32_t *arg) {
-// 	/* enable the backup registers */
-// 	PWR_CR |= PWR_CR_DBP;
-// 	RCC_BDCR |= RCC_BDCR_RTCEN;
+/**
+ * Set boot signature and reset
+ */
+void reset_to_uf2_bootloader(void) {
+  // Enable writing to backup domain
+  // STM32F4:
+  // PWR->CR |= PWR_CR_DBP;
+  // STM32H7:
+  PWR->CR1 |= PWR_CR1_DBP;
+  // Set boot signature in RTC backup register
+  RTC->BKP0R = BOOTLOADER_RTC_SIGNATURE;
 
-// 	uint32_t result = BOOT_RTC_REG;
-// 	if (arg)
-// 		*arg = ARG_RTC_REG;
-
-// 	/* disable the backup registers */
-// 	RCC_BDCR &= RCC_BDCR_RTCEN;
-// 	PWR_CR &= ~PWR_CR_DBP;
-
-// 	return result;
-// }
-
-// void board_set_rtc_signature(uint32_t sig, uint32_t arg) {
-// 	/* enable the backup registers */
-// 	PWR_CR |= PWR_CR_DBP;
-// 	RCC_BDCR |= RCC_BDCR_RTCEN;
-
-// 	BOOT_RTC_REG = sig;
-// 	ARG_RTC_REG = arg;
-
-// 	/* disable the backup registers */
-// 	RCC_BDCR &= RCC_BDCR_RTCEN;
-// 	PWR_CR &= ~PWR_CR_DBP;
-// }
+  NVIC_SystemReset();
+}

@@ -78,9 +78,10 @@ bool check_bootloader_button(void) {
 }
 
 /*
- * Application entry point.
+ * Bootloader function, should be called from __early_init() in board.c,
+ * just after stm32_gpio_init() and before stm32_clock_init()
  */
-int main(void) {
+void pre_clock_init(void) {
   bool try_boot = true;
 
   /* Check bootloader button */
@@ -88,12 +89,24 @@ int main(void) {
     try_boot = false;
   }
 
-  // TODO: Check RTC ram for software boot into bootloader
+  /* Check backup register for soft boot into bootloader */
+  if (RTC->BKP0R == BOOTLOADER_RTC_SIGNATURE) {
+    // Enable writing to backup domain
+    PWR->CR1 |= PWR_CR1_DBP;
+    // reset signature
+    RTC->BKP0R = 0;
+    try_boot = false;
+  }
 
   if (try_boot) {
     jump_to_app();
   }
+}
 
+/*
+ * Application entry point.
+ */
+int main(void) {
   /*
    * System initializations.
    * - HAL initialization, this also initializes the configured device drivers
