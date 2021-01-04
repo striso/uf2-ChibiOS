@@ -65,13 +65,8 @@ static const SerialConfig sercfg = {
     0
 };
 
-/*
- * Application entry point.
- */
-int main(void) {
-  bool try_boot = true;
-
-  /* Check bootloader button */
+/* Check bootloader button */
+bool check_bootloader_button(void) {
   int samples, vote = 0;
   for (samples = 0; samples < 200; samples++) {
     if (palReadLine(PORTAB_BOOTLOADER_BUTTON) == PORTAB_BOOTLOADER_BUTTON_PRESSED) {
@@ -79,7 +74,17 @@ int main(void) {
     }
   }
   /* reject a little noise */
-  if ((vote * 100) > (samples * 90)) {
+  return (vote * 100) > (samples * 90);
+}
+
+/*
+ * Application entry point.
+ */
+int main(void) {
+  bool try_boot = true;
+
+  /* Check bootloader button */
+  if (check_bootloader_button()) {
     try_boot = false;
   }
 
