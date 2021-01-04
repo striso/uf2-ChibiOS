@@ -141,3 +141,15 @@ INCLUDE rules_data.ld
 /* Memory rules inclusion.*/
 INCLUDE rules_memory.ld
 
+SECTIONS
+{
+    .fwinfo :
+    {
+        KEEP(*(.fwinfo))
+    } > fwinfo
+
+    .config :
+    {
+        KEEP(*(.config))
+    } > config
+}
