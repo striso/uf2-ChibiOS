@@ -326,10 +326,6 @@ int read_block(uint32_t block_no, uint8_t *data) {
                 bl->numBlocks = BOARD_FLASH_SIZE / 256;
                 bl->familyID = UF2_FAMILY;
                 bl->magicEnd = UF2_MAGIC_END;
-                if (addr >= DEVSPEC_FLASH_START) {
-                    // last sector is used to store device specific information, and should not be overwritten accidentally
-                    bl->flags |= UF2_FLAG_NOFLASH;
-                }
 
                 memcpy(bl->data, (void *)addr, bl->payloadSize);
             } else if (sectionIdx <= CFGBIN_LAST_SECTOR) {
@@ -371,9 +367,19 @@ static void write_block_core(uint32_t block_no, const uint8_t *data, bool quiet,
         return;
     }
 
+    bool UID_check = true;
+#ifdef DEVSPEC_FLASH_START
+    // last sector is used to store device specific information, and should only be written if UID matches
+    if (bl->targetAddr >= DEVSPEC_FLASH_START) {
+        UID_check = ((uint32_t*)bl->data)[0] == ((uint32_t*)UID_BASE)[0] &&
+                    ((uint32_t*)bl->data)[1] == ((uint32_t*)UID_BASE)[1] &&
+                    ((uint32_t*)bl->data)[2] == ((uint32_t*)UID_BASE)[2];
+    }
+#endif
+
     palSetLine(PORTAB_STATUS_LED);
     if ((bl->flags & UF2_FLAG_NOFLASH) || bl->payloadSize > 256 || (bl->targetAddr & 0xff) ||
-        !VALID_FLASH_ADDR(bl->targetAddr, bl->payloadSize)) {
+        !VALID_FLASH_ADDR(bl->targetAddr, bl->payloadSize) || !UID_check) {
         DBG("Skip block at %x", bl->targetAddr);
         // this happens when we're trying to re-flash CURRENT.UF2 file previously
         // copied from a device; we still want to count these blocks to reset properly
