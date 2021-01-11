@@ -191,7 +191,7 @@ BINARY = $(BUILDDIR_BOOTLOADER)/bootloader.bin
 .PHONY: $(BINARY)
 
 $(BINARY):
-	make -f make/strisoboard_v2.make all
+	$(MAKE) -f make/strisoboard_v2.make all
 
 $(BUILDDIR)/bootloader_bin.c: $(BINARY)
 	python3 uf2/utils/uf2conv.py --carray $(BINARY) -o $(BUILDDIR)/bootloader_bin.c

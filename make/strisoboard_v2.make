@@ -193,20 +193,11 @@ ULIBS =
 ##############################################################################
 
 ##############################################################################
-# Common rules
-#
-
-RULESPATH = $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC/mk
-include $(RULESPATH)/arm-none-eabi.mk
-include $(RULESPATH)/rules.mk
-
-#
-# Common rules
-##############################################################################
-
-##############################################################################
 # Custom rules
 #
+
+flasher: all
+	$(MAKE) -f make/strisoboard_v2_flasher.make
 
 prog: all
 	dfu-util -d0483:df11 -a0 -s0x8000000:leave -D $(BUILDDIR)/$(PROJECT).bin
@@ -219,4 +210,16 @@ version:
 
 #
 # Custom rules
+##############################################################################
+
+##############################################################################
+# Common rules
+#
+
+RULESPATH = $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC/mk
+include $(RULESPATH)/arm-none-eabi.mk
+include $(RULESPATH)/rules.mk
+
+#
+# Common rules
 ##############################################################################
