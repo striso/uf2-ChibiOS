@@ -40,6 +40,10 @@
 
 #define PORTAB_BLINK_LED            LINE_LED1
 #define PORTAB_STATUS_LED           LINE_LED3
+#define PORTAB_FLASHER_LED          LINE_LED3
+#define PORTAB_FLASHER_SKIP_LED     LINE_LED1
+#define PORTAB_BOOTLOADER_BUTTON    LINE_BUTTON
+#define PORTAB_BOOTLOADER_BUTTON_PRESSED    1
 
 /*===========================================================================*/
 /* Module pre-compile time settings.                                         */

@@ -180,21 +180,21 @@ ULIBS =
 # Custom rules
 #
 
-# default: build .uf2 file for use with uf2 bootloader
+# default: build flasher.uf2 file for updating using existing uf2 bootloader
 uf2: $(BUILDDIR)/$(PROJECT).uf2
 	cp $(BUILDDIR)/$(PROJECT).uf2 $(BUILDDIR_BOOTLOADER)/$(PROJECT).uf2
 
-$(BUILDDIR)/$(PROJECT).uf2: $(BUILDDIR)/$(PROJECT).bin
+$(BUILDDIR)/$(PROJECT).uf2: $(BUILDDIR)/bootloader_bin.c $(BUILDDIR)/$(PROJECT).bin
 	python3 uf2/utils/uf2conv.py -c -f 0xa21e1295 -b 0x08040000 $(BUILDDIR)/$(PROJECT).bin -o $(BUILDDIR)/$(PROJECT).uf2
 
 BINARY = $(BUILDDIR_BOOTLOADER)/bootloader.bin
 
 .PHONY: $(BINARY)
-
 $(BINARY):
 	$(MAKE) -f make/strisoboard_v2.make all
 
 $(BUILDDIR)/bootloader_bin.c: $(BINARY)
+	@mkdir -p $(BUILDDIR)
 	python3 uf2/utils/uf2conv.py --carray $(BINARY) -o $(BUILDDIR)/bootloader_bin.c
 
 #

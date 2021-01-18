@@ -34,16 +34,14 @@ int main(void) {
   halInit();
   chSysInit();
 
-  palClearLine(PORTAB_BLINK_LED);
-  palClearLine(LINE_LED_B);
+  palClearLine(PORTAB_FLASHER_LED);
 
   uint32_t dst = 0x08000000;
 
   if (memcmp((void *)dst, bindata, bindata_len) == 0) {
     // already the same, don't flash
-    palSetLine(LINE_LED_R);
-    palSetLine(LINE_LED_B);
-    palClearLine(LINE_LED_G);
+    palSetLine(PORTAB_FLASHER_LED);
+    palClearLine(PORTAB_FLASHER_SKIP_LED);
     chThdSleepMilliseconds(500);
     reset_to_uf2_bootloader();
   }
@@ -61,7 +59,6 @@ int main(void) {
   uint32_t sectorError = 0;
   HAL_FLASHEx_Erase(&eraseInit, &sectorError);
 
-  palSetLine(LINE_LED_B);
 
   // if (!is_blank(addr, size) | (sectorError != 0xffffffff))
   // 	PANIC("failed to erase!");
@@ -70,6 +67,7 @@ int main(void) {
     // flash_program_word(dst + i, *(uint32_t*)(src + i));
     HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, dst + i,
                       (uint32_t)bindata + i);
+    palToggleLine(PORTAB_FLASHER_LED);
   }
 
   // TODO: implement error checking
@@ -86,6 +84,6 @@ int main(void) {
 
   HAL_FLASH_Lock();
 
-  palClearLine(LINE_LED_B);
+  palClearLine(PORTAB_FLASHER_LED);
   reset_to_uf2_bootloader();
 }
