@@ -202,6 +202,9 @@ static void stm32_gpio_init(void) {
 /* Driver exported functions.                                                */
 /*===========================================================================*/
 
+/* defined in main.c */
+void pre_clock_init(void);
+
 /**
  * @brief   Early initialization code.
  * @details GPIO ports and system clocks are initialized before everything
@@ -210,6 +213,8 @@ static void stm32_gpio_init(void) {
 void __early_init(void) {
 
   stm32_gpio_init();
+  // run bootloader code before clock_init, as the backup domain is cleared in clock_init
+  pre_clock_init();
   stm32_clock_init();
 }
 

@@ -30,9 +30,9 @@
 /*===========================================================================*/
 
 #define USBDEVICESTRING BOARD_NAME
-#define USBMFGSTRING "Striso"
-#define BOARD_FLASH_SECTORS 8
-#define BOARD_FLASH_SIZE (1024 * 1024)
+#define USBMFGSTRING "STMicroelectronics"
+#define BOARD_FLASH_SECTORS 16
+#define BOARD_FLASH_SIZE (2 * 1024 * 1024)
 
 // #define PORTAB_USB1                 USBD1
 

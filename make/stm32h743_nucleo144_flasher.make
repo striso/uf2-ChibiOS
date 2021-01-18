@@ -34,11 +34,6 @@ ifeq ($(USE_LTO),)
   USE_LTO = yes
 endif
 
-# If enabled, this option allows to compile the application in THUMB mode.
-ifeq ($(USE_THUMB),)
-  USE_THUMB = yes
-endif
-
 # Enable this if you want to see the full log while compiling.
 ifeq ($(USE_VERBOSE_COMPILE),)
   USE_VERBOSE_COMPILE = no
@@ -89,7 +84,7 @@ endif
 #
 
 # Define project name here
-PROJECT = bootloader
+PROJECT = flasher
 
 # Target settings.
 MCU  = cortex-m7
@@ -98,8 +93,9 @@ MCU  = cortex-m7
 CHIBIOS  := ./ChibiOS
 CHIBIOS_CONTRIB := $(CHIBIOS)/../ChibiOS-Contrib
 CONFDIR  := ./cfg/stm32h743_nucleo144
-BUILDDIR := ./build/stm32h743_nucleo144
-DEPDIR   := ./.dep/stm32h743_nucleo144
+BUILDDIR_BOOTLOADER := ./build/stm32h743_nucleo144
+BUILDDIR := $(BUILDDIR_BOOTLOADER)/flasher
+DEPDIR   := ./.dep/stm32h743_nucleo144_flasher
 BOARDDIR := ./board/ST_NUCLEO144_H743ZI
 
 # Licensing files.
@@ -118,22 +114,17 @@ include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 include $(CHIBIOS)/os/hal/lib/streams/streams.mk
 
 # Define linker script file here
-#LDSCRIPT= $(STARTUPLD)/STM32H743xI.ld
-LDSCRIPT= STM32H743xI_bootloader.ld
+# LDSCRIPT= $(STARTUPLD)/STM32H743xI.ld
+LDSCRIPT= STM32H743xI_uf2.ld
 
 # C sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
 CSRC = $(ALLCSRC) \
-       $(TESTSRC) \
-       $(CHIBIOS_CONTRIB)/os/various/lib_scsi.c \
-       usbcfg.c \
-       ghostdisk.c \
-       ghostfat.c \
-       flash.c \
        stm32h7xx_hal_flash.c \
        stm32h7xx_hal_flash_ex.c \
        bootloader.c \
-       main.c
+       $(BUILDDIR)/bootloader_bin.c \
+       flasher.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.
@@ -162,16 +153,8 @@ CPPWARN = -Wall -Wextra -Wundef
 # Start of user section
 #
 
-# Git revision description, recompile anything depending on uf2cfg.h on version change
-GITVERSION := $(shell git --no-pager show --date=short --format="%ad" --name-only | head -n1)_$(shell git --no-pager describe --tags --always --long --dirty)
-# GITVERSION := $(shell git --no-pager describe --tags --always --long --dirty)
-ifneq ($(GITVERSION), $(shell cat .git_version 2>&1))
-$(shell echo -n $(GITVERSION) > .git_version)
-$(shell touch uf2cfg.h)
-endif
-
 # List all user C define here, like -D_DEBUG=1
-UDEFS = -DUF2_VERSION=\"$(GITVERSION)\"
+UDEFS =
 
 # Define ASM defines here
 UADEFS =
@@ -193,17 +176,22 @@ ULIBS =
 # Custom rules
 #
 
-flasher: all
-	$(MAKE) -f make/stm32h743_nucleo144_flasher.make
+# default: build flasher.uf2 file for updating using existing uf2 bootloader
+uf2: $(BUILDDIR)/$(PROJECT).uf2
+	cp $(BUILDDIR)/$(PROJECT).uf2 $(BUILDDIR_BOOTLOADER)/$(PROJECT).uf2
 
-prog: all
-	dfu-util -d0483:df11 -a0 -s0x8000000:leave -D $(BUILDDIR)/$(PROJECT).bin
+$(BUILDDIR)/$(PROJECT).uf2: $(BUILDDIR)/bootloader_bin.c $(BUILDDIR)/$(PROJECT).bin
+	python3 uf2/utils/uf2conv.py -c -f 0xa21e1295 -b 0x08040000 $(BUILDDIR)/$(PROJECT).bin -o $(BUILDDIR)/$(PROJECT).uf2
 
-prog_openocd: all
-	openocd -f interface/stlink.cfg -f target/stm32h7x.cfg -c "program $(BUILDDIR)/$(PROJECT).elf reset exit"
+BINARY = $(BUILDDIR_BOOTLOADER)/bootloader.bin
 
-version:
-	@echo $(GITVERSION)
+.PHONY: $(BINARY)
+$(BINARY):
+	$(MAKE) -f make/stm32h743_nucleo144.make all
+
+$(BUILDDIR)/bootloader_bin.c: $(BINARY)
+	@mkdir -p $(BUILDDIR)
+	python3 uf2/utils/uf2conv.py --carray $(BINARY) -o $(BUILDDIR)/bootloader_bin.c
 
 #
 # Custom rules
