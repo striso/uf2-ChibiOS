@@ -11,7 +11,7 @@ endif
 
 # C specific options here (added to USE_OPT).
 ifeq ($(USE_COPT),)
-  USE_COPT = 
+  USE_COPT =
 endif
 
 # C++ specific options here (added to USE_OPT).
@@ -115,11 +115,7 @@ include $(CHIBIOS)/os/hal/osal/rt-nil/osal.mk
 include $(CHIBIOS)/os/rt/rt.mk
 include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 # Other files (optional).
-# include $(CHIBIOS)/test/lib/test.mk
-# include $(CHIBIOS)/test/rt/rt_test.mk
-# include $(CHIBIOS)/test/oslib/oslib_test.mk
 include $(CHIBIOS)/os/hal/lib/streams/streams.mk
-# include $(CHIBIOS)/os/various/shell/shell.mk
 
 # Define linker script file here
 # LDSCRIPT= $(STARTUPLD)/STM32H743xI.ld
@@ -149,7 +145,7 @@ ASMSRC = $(ALLASMSRC)
 # List ASM with preprocessor source files here.
 ASMXSRC = $(ALLXASMSRC)
 
-INCDIR = $(ALLINC) $(TESTINC) $(CONFDIR) \
+INCDIR = $(ALLINC) $(CONFDIR) \
          $(CHIBIOS_CONTRIB)/os/various
 
 # Define C warning options here.
