@@ -5,7 +5,7 @@
             "includePath": [
                 ".",
                 "cfg/strisoboard_v2",
-                "board",
+                "board/strisoboard_v2",
                 "ChibiOS/os/license",
                 "ChibiOS/os/common/portability/GCC",
                 "ChibiOS/os/common/startup/ARMCMx/compilers/GCC",

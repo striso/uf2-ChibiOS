@@ -1,8 +1,8 @@
 # List of all the board related files.
-BOARDSRC = board/board.c
+BOARDSRC = board/strisoboard_v2/board.c
 
 # Required include directories
-BOARDINC = board
+BOARDINC = board/strisoboard_v2
 
 # Shared variables
 ALLCSRC += $(BOARDSRC)

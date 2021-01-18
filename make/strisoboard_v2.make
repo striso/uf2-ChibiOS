@@ -100,6 +100,7 @@ CHIBIOS_CONTRIB := $(CHIBIOS)/../ChibiOS-Contrib
 CONFDIR  := ./cfg/strisoboard_v2
 BUILDDIR := ./build/strisoboard_v2
 DEPDIR   := ./.dep/strisoboard_v2
+BOARDDIR := ./board/strisoboard_v2
 
 # Licensing files.
 include $(CHIBIOS)/os/license/license.mk
@@ -108,7 +109,7 @@ include $(CHIBIOS)/os/common/startup/ARMCMx/compilers/GCC/mk/startup_stm32h7xx.m
 # HAL-OSAL files (optional).
 include $(CHIBIOS_CONTRIB)/os/hal/hal.mk
 include $(CHIBIOS_CONTRIB)/os/hal/ports/STM32/STM32H7xx/platform.mk
-include ./board/board.mk
+include $(BOARDDIR)/board.mk
 include $(CHIBIOS)/os/hal/osal/rt-nil/osal.mk
 # RTOS files (optional).
 include $(CHIBIOS)/os/rt/rt.mk
