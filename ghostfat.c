@@ -162,11 +162,17 @@ static const struct TextFile info[] = {
 #endif
     // Custom handled files
     {.name = "CURRENT UF2"},
+#ifdef USE_CONFIGFILE
     {.name = "CONFIG  UF2"},
     {.name = "CONFIG  HTM"},
+#endif
 };
 #define NUM_INFO (int)(sizeof(info) / sizeof(info[0]))
-#define START_CUSTOM_FILES (NUM_INFO - 3)
+#ifdef FWVERSIONFILE
+#define START_CUSTOM_FILES 3
+#else
+#define START_CUSTOM_FILES 2
+#endif
 
 #define UF2_INDEX START_CUSTOM_FILES
 #define UF2_SIZE (BOARD_FLASH_SIZE * 2)
@@ -174,6 +180,7 @@ static const struct TextFile info[] = {
 #define UF2_FIRST_SECTOR (START_CUSTOM_FILES)
 #define UF2_LAST_SECTOR (uint32_t)(UF2_FIRST_SECTOR + UF2_SECTORS - 1)
 
+#ifdef USE_CONFIGFILE
 #define CFGBIN_INDEX (START_CUSTOM_FILES + 1)
 #define CFGBIN_SIZE (128 * 1024 * 2)
 #define CFGBIN_SECTORS (CFGBIN_SIZE / 512)
@@ -186,6 +193,7 @@ size_t cfghtm_size;
 #define CFGHTM_SECTORS ((CFGHTM_SIZE + 511) / 512)
 #define CFGHTM_FIRST_SECTOR (CFGBIN_LAST_SECTOR + 1)
 #define CFGHTM_LAST_SECTOR (CFGHTM_FIRST_SECTOR + CFGHTM_SECTORS - 1)
+#endif
 
 #define RESERVED_SECTORS 1
 #define ROOT_DIR_SECTORS 4
@@ -272,11 +280,15 @@ int read_block(uint32_t block_no, uint8_t *data) {
             uint32_t sector = v - CLUSTER_OFFSET;
             if (UF2_FIRST_SECTOR <= sector && sector <= UF2_LAST_SECTOR) {
                 ((uint16_t *)(void *)data)[i] = (sector == UF2_LAST_SECTOR) ? 0xffff : v + 1;
-            } else if (CFGBIN_FIRST_SECTOR <= sector && sector <= CFGBIN_LAST_SECTOR) {
+            }
+#ifdef USE_CONFIGFILE
+            else if (CFGBIN_FIRST_SECTOR <= sector && sector <= CFGBIN_LAST_SECTOR) {
                 ((uint16_t *)(void *)data)[i] = (sector == CFGBIN_LAST_SECTOR) ? 0xffff : v + 1;
-            } else if (CFGHTM_FIRST_SECTOR <= sector && sector <= CFGHTM_LAST_SECTOR) {
+            }
+            else if (CFGHTM_FIRST_SECTOR <= sector && sector <= CFGHTM_LAST_SECTOR) {
                 ((uint16_t *)(void *)data)[i] = (sector == CFGHTM_LAST_SECTOR) ? 0xffff : v + 1;
             }
+#endif
         }
     } else if (block_no < START_CLUSTERS) {
         // Send root dir entry
@@ -291,16 +303,21 @@ int read_block(uint32_t block_no, uint8_t *data) {
                 if (i < START_CUSTOM_FILES) {
                     d->size = inf->content ? fileLength(inf->content) : 0;
                     d->startCluster = i + CLUSTER_OFFSET;
-                } else if (i == UF2_INDEX) {
+                }
+                else if (i == UF2_INDEX) {
                     d->size = UF2_SIZE;
                     d->startCluster = UF2_FIRST_SECTOR + CLUSTER_OFFSET;
-                } else if (i == CFGBIN_INDEX) {
+                }
+#ifdef USE_CONFIGFILE
+                else if (i == CFGBIN_INDEX) {
                     d->size = CFGBIN_SIZE;
                     d->startCluster = CFGBIN_FIRST_SECTOR + CLUSTER_OFFSET;
-                } else if (i == CFGHTM_INDEX) {
+                }
+                else if (i == CFGHTM_INDEX) {
                     d->size = CFGHTM_SIZE;
                     d->startCluster = CFGHTM_FIRST_SECTOR + CLUSTER_OFFSET;
                 }
+#endif
                 padded_memcpy(d->name, inf->name, 11);
             }
         }
@@ -328,7 +345,9 @@ int read_block(uint32_t block_no, uint8_t *data) {
                 bl->magicEnd = UF2_MAGIC_END;
 
                 memcpy(bl->data, (void *)addr, bl->payloadSize);
-            } else if (sectionIdx <= CFGBIN_LAST_SECTOR) {
+            }
+#ifdef USE_CONFIGFILE
+            else if (sectionIdx <= CFGBIN_LAST_SECTOR) {
                 // Send CONFIG.UF2
                 uint32_t blockNo = sectionIdx - CFGBIN_FIRST_SECTOR;
                 uint32_t addr = blockNo * 256 + 0x08020000;
@@ -344,11 +363,13 @@ int read_block(uint32_t block_no, uint8_t *data) {
                 bl->magicEnd = UF2_MAGIC_END;
 
                 memcpy(bl->data, (void *)addr, bl->payloadSize);
-            } else if (sectionIdx <= CFGHTM_LAST_SECTOR) {
+            }
+            else if (sectionIdx <= CFGHTM_LAST_SECTOR) {
                 // Send CONFIG.HTM
                 uint32_t blockNo = sectionIdx - CFGHTM_FIRST_SECTOR;
                 segmentedFileGetSector(CONFIGHTM_FILE, CONFIGHTM_SEGMENTS, blockNo, data);
             }
+#endif
         }
     }
 
@@ -434,5 +455,7 @@ int write_block(uint32_t lba, const uint8_t *copy_from) {
 }
 
 void ghostfat_init(void) {
+#ifdef USE_CONFIGFILE
     cfghtm_size = segmentedFileLength(CONFIGHTM_FILE, CONFIGHTM_SEGMENTS);
+#endif
 }

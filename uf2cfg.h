@@ -14,6 +14,8 @@
 #define USER_FLASH_END (0x08000000+BOARD_FLASH_SIZE)
 // Address where firmware info string is put (adjust USER_FLASH_START so it's writable)
 #define FWVERSIONFILE 0x08040000
+// Use config.uf2 and config.htm files
+#define USE_CONFIGFILE
 #define CONFIGHTM_FILE 0x08040200
 #define CONFIGHTM_SEGMENTS 8
 #define DEVSPEC_FLASH_START 0x081e0000
