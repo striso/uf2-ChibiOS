@@ -28,8 +28,7 @@ static struct {
 };
 
 
-uint32_t flash_func_sector_size(unsigned sector)
-{
+uint32_t flash_func_sector_size(unsigned sector) {
 	if (sector < BOARD_FLASH_SECTORS) {
 		return flash_sectors[sector].size;
 	}
@@ -49,8 +48,12 @@ static bool is_blank(uint32_t addr, uint32_t size) {
 	return true;
 }
 
-void flash_write(uint32_t dst, const uint8_t *src, int len)
-{
+/*
+ * Write flash, erase sector if necessary and not already erased.
+ *
+ * When failsafe=true don't check if the sector is empty to not fail on ECC errors.
+ */
+void flash_write(uint32_t dst, const uint8_t *src, int len, bool failsafe) {
 	uint32_t addr = 0x08000000;
 	uint32_t sector = 0;
 	uint32_t size = 0;
@@ -72,7 +75,7 @@ void flash_write(uint32_t dst, const uint8_t *src, int len)
 
 	HAL_FLASH_Unlock();
 
-	if (!erasedSectors[sector] && !is_blank(addr, size)) {
+	if (!erasedSectors[sector] && (failsafe || !is_blank(addr, size))) {
 		erasedSectors[sector] = 1; // don't erase anymore - we will continue writing here!
 		// flash_erase_sector(sector, FLASH_CR_PROGRAM_X32);
 
@@ -90,10 +93,20 @@ void flash_write(uint32_t dst, const uint8_t *src, int len)
 		// 	PANIC("failed to erase!");
 	}
 
-    for (int i = 0; i < len; i += 4) {
-		// flash_program_word(dst + i, *(uint32_t*)(src + i));
-		HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, dst + i, (uint32_t)src + i);
-    }
+	// check if flash is really empty, otherwise ECC errors might be created
+	if (is_blank(dst, len)) {
+		for (int i = 0; i < len; i += 4) {
+			// flash_program_word(dst + i, *(uint32_t*)(src + i));
+			HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, dst + i, (uint32_t)src + i);
+		}
+	} else {
+		// PANIC("flash to write is not empty");
+		// TODO: better error handling
+		while (true) {
+			palToggleLine(PORTAB_BLINK_LED);
+			chThdSleepMilliseconds(30);
+		}
+	}
 
 	// TODO: implement error checking
 	// ccrc = CalcCRC32((uint8_t *)(SDRAM_BANK_ADDR + 0x010), flength);

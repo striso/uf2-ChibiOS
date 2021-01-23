@@ -47,6 +47,8 @@
 #define PORTAB_FLASHER_SKIP_LED     LINE_LED_G
 #define PORTAB_BOOTLOADER_BUTTON    LINE_BUTTON_ALT
 #define PORTAB_BOOTLOADER_BUTTON_PRESSED    0
+#define PORTAB_FAILSAFE_BUTTON      LINE_BUTTON_PORT
+#define PORTAB_FAILSAFE_BUTTON_PRESSED      0
 
 /*===========================================================================*/
 /* Module pre-compile time settings.                                         */

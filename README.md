@@ -10,8 +10,9 @@ This bootloader is developed for the [Striso board MPE MIDI controller](https://
 - Enter bootloader by holding button on power-up, or enter from main firmware.
 - INFO_UF2.TXT file containing the current bootloader git revision.
 - INFO_FW.TXT file containing the current firmware version (should be at the start of the firmware binary, see [Striso control firmware repository](https://github.com/striso/striso-control-firmware) for details)
-- CONFIG.UF2 and CONFIG.HTM for firmware settings (to be implemented in firmware).
+- CONFIG.UF2 and CONFIG.HTM for firmware settings (loaded from firmware).
 - Protected flash sector for storing device specific information.
+- Failsafe mode for when there are flash ECC errors, started by pressing an extra button on boot.
 - CF2 and WebUSB are currently not implemented.
 
 ## Build instructions

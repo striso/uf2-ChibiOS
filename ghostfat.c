@@ -226,7 +226,7 @@ static const FAT_BootBlock BootBlock = {
 
 static uint32_t resetTime;
 static uint32_t ms;
-
+static bool failsafe_mode = false;
 
 static void uf2_timer_start(int delay) {
     resetTime = ms + delay;
@@ -299,6 +299,9 @@ int read_block(uint32_t block_no, uint8_t *data) {
             d->attrs = 0x28;
             for (int i = 0; i < NUM_INFO; ++i) {
                 d++;
+                if (failsafe_mode && i >= 1) {
+                    break;
+                }
                 const struct TextFile *inf = &info[i];
                 if (i < START_CUSTOM_FILES) {
                     d->size = inf->content ? fileLength(inf->content) : 0;
@@ -324,6 +327,9 @@ int read_block(uint32_t block_no, uint8_t *data) {
     } else {
         // Send file contents
         sectionIdx -= START_CLUSTERS;
+        if (failsafe_mode && sectionIdx >= 1) {
+            return 0;
+        }
         if (sectionIdx < START_CUSTOM_FILES) {
             // Send text file content from info struct (max 1 sector per file)
             memcpy(data, info[sectionIdx].content, fileLength(info[sectionIdx].content));
@@ -408,7 +414,7 @@ static void write_block_core(uint32_t block_no, const uint8_t *data, bool quiet,
         // logval("write block at", bl->targetAddr);
         DBG("Write block at %x", bl->targetAddr);
         // TODO: wait with writing APP_LOAD_ADDRESS until last block is written
-        flash_write(bl->targetAddr, bl->data, bl->payloadSize);
+        flash_write(bl->targetAddr, bl->data, bl->payloadSize, failsafe_mode);
     }
     palClearLine(PORTAB_STATUS_LED);
 
@@ -454,8 +460,27 @@ int write_block(uint32_t lba, const uint8_t *copy_from) {
     return 0;
 }
 
+/* Check failsafe button */
+bool check_failsafe_button(void) {
+#ifdef PORTAB_FAILSAFE_BUTTON
+    int samples, vote = 0;
+    for (samples = 0; samples < 200; samples++) {
+        if (palReadLine(PORTAB_FAILSAFE_BUTTON) == PORTAB_FAILSAFE_BUTTON_PRESSED) {
+            vote++;
+        }
+    }
+    /* reject a little noise */
+    return (vote * 100) > (samples * 90);
+#else
+    return false;
+#endif
+}
+
 void ghostfat_init(void) {
+    failsafe_mode = check_failsafe_button();
 #ifdef USE_CONFIGFILE
-    cfghtm_size = segmentedFileLength(CONFIGHTM_FILE, CONFIGHTM_SEGMENTS);
+    if (!failsafe_mode) {
+        cfghtm_size = segmentedFileLength(CONFIGHTM_FILE, CONFIGHTM_SEGMENTS);
+    }
 #endif
 }

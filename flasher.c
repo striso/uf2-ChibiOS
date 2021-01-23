@@ -78,6 +78,8 @@ int main(void) {
   // }
 
   // self destruct
+  // note: writing flash that's not empty is dangerous, it could mess up ECC
+  // TODO: Check if this is safe
   uint32_t empty = 0;
   HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, APP_LOAD_ADDRESS, (uint32_t)&empty);
   HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, APP_LOAD_ADDRESS + 4, (uint32_t)&empty);
