@@ -181,17 +181,17 @@ static const struct TextFile info[] = {
 #define UF2_LAST_SECTOR (uint32_t)(UF2_FIRST_SECTOR + UF2_SECTORS - 1)
 
 #ifdef USE_CONFIGFILE
-#define CFGBIN_INDEX (START_CUSTOM_FILES + 1)
-#define CFGBIN_SIZE (128 * 1024 * 2)
-#define CFGBIN_SECTORS (CFGBIN_SIZE / 512)
-#define CFGBIN_FIRST_SECTOR (UF2_LAST_SECTOR + 1)
-#define CFGBIN_LAST_SECTOR (CFGBIN_FIRST_SECTOR + CFGBIN_SECTORS - 1)
+#define CFGUF2_INDEX (START_CUSTOM_FILES + 1)
+#define CFGUF2_SIZE (128 * 1024 * 2)
+#define CFGUF2_SECTORS (CFGUF2_SIZE / 512)
+#define CFGUF2_FIRST_SECTOR (UF2_LAST_SECTOR + 1)
+#define CFGUF2_LAST_SECTOR (CFGUF2_FIRST_SECTOR + CFGUF2_SECTORS - 1)
 
 size_t cfghtm_size;
 #define CFGHTM_INDEX (START_CUSTOM_FILES + 2)
 #define CFGHTM_SIZE cfghtm_size
 #define CFGHTM_SECTORS ((CFGHTM_SIZE + 511) / 512)
-#define CFGHTM_FIRST_SECTOR (CFGBIN_LAST_SECTOR + 1)
+#define CFGHTM_FIRST_SECTOR (CFGUF2_LAST_SECTOR + 1)
 #define CFGHTM_LAST_SECTOR (CFGHTM_FIRST_SECTOR + CFGHTM_SECTORS - 1)
 #endif
 
@@ -282,8 +282,8 @@ int read_block(uint32_t block_no, uint8_t *data) {
                 ((uint16_t *)(void *)data)[i] = (sector == UF2_LAST_SECTOR) ? 0xffff : v + 1;
             }
 #ifdef USE_CONFIGFILE
-            else if (CFGBIN_FIRST_SECTOR <= sector && sector <= CFGBIN_LAST_SECTOR) {
-                ((uint16_t *)(void *)data)[i] = (sector == CFGBIN_LAST_SECTOR) ? 0xffff : v + 1;
+            else if (CFGUF2_FIRST_SECTOR <= sector && sector <= CFGUF2_LAST_SECTOR) {
+                ((uint16_t *)(void *)data)[i] = (sector == CFGUF2_LAST_SECTOR) ? 0xffff : v + 1;
             }
             else if (CFGHTM_FIRST_SECTOR <= sector && sector <= CFGHTM_LAST_SECTOR) {
                 ((uint16_t *)(void *)data)[i] = (sector == CFGHTM_LAST_SECTOR) ? 0xffff : v + 1;
@@ -309,9 +309,9 @@ int read_block(uint32_t block_no, uint8_t *data) {
                     d->startCluster = UF2_FIRST_SECTOR + CLUSTER_OFFSET;
                 }
 #ifdef USE_CONFIGFILE
-                else if (i == CFGBIN_INDEX) {
-                    d->size = CFGBIN_SIZE;
-                    d->startCluster = CFGBIN_FIRST_SECTOR + CLUSTER_OFFSET;
+                else if (i == CFGUF2_INDEX) {
+                    d->size = CFGUF2_SIZE;
+                    d->startCluster = CFGUF2_FIRST_SECTOR + CLUSTER_OFFSET;
                 }
                 else if (i == CFGHTM_INDEX) {
                     d->size = CFGHTM_SIZE;
@@ -347,10 +347,10 @@ int read_block(uint32_t block_no, uint8_t *data) {
                 memcpy(bl->data, (void *)addr, bl->payloadSize);
             }
 #ifdef USE_CONFIGFILE
-            else if (sectionIdx <= CFGBIN_LAST_SECTOR) {
+            else if (sectionIdx <= CFGUF2_LAST_SECTOR) {
                 // Send CONFIG.UF2
-                uint32_t blockNo = sectionIdx - CFGBIN_FIRST_SECTOR;
-                uint32_t addr = blockNo * 256 + 0x08020000;
+                uint32_t blockNo = sectionIdx - CFGUF2_FIRST_SECTOR;
+                uint32_t addr = blockNo * 256 + CFGUF2_ADDRESS;
                 UF2_Block *bl = (void *)data;
                 bl->magicStart0 = UF2_MAGIC_START0;
                 bl->magicStart1 = UF2_MAGIC_START1;
@@ -358,7 +358,7 @@ int read_block(uint32_t block_no, uint8_t *data) {
                 bl->targetAddr = addr;
                 bl->payloadSize = 256;
                 bl->blockNo = blockNo;
-                bl->numBlocks = CFGBIN_SIZE / 256;
+                bl->numBlocks = CFGUF2_SIZE / 256;
                 bl->familyID = UF2_FAMILY;
                 bl->magicEnd = UF2_MAGIC_END;
 
