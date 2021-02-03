@@ -34,6 +34,23 @@
 #define GHOSTDISK_BLOCK_SIZE    512U
 #define GHOSTDISK_BLOCK_CNT     UF2_NUM_BLOCKS
 
+/**
+ * SCSI inquiry response structure.
+ */
+static const scsi_inquiry_response_t scsi_inquiry_response = {
+    0x00,           /* direct access block device     */
+    0x80,           /* removable                      */
+    0x04,           /* SPC-2                          */
+    0x02,           /* response data format           */
+    0x20,           /* response has 0x20 + 4 bytes    */
+    0x00,
+    0x00,
+    0x00,
+    "Striso",       /* 8 char vendorID */
+    "UF2 Bootloader",   /* 16 char productID */
+    {'v',CH_KERNEL_MAJOR+'0','.',CH_KERNEL_MINOR+'0'} /* 4 char productRev */
+};
+
 /*
  * Red LED blinker thread, times are in milliseconds.
  */
@@ -142,7 +159,7 @@ int main(void) {
    * start mass storage
    */
   msdObjectInit(&USBMSD1);
-  msdStart(&USBMSD1, &USBD1, (BaseBlockDevice *)&ghostdisk, blkbuf, NULL, NULL);
+  msdStart(&USBMSD1, &USBD1, (BaseBlockDevice *)&ghostdisk, blkbuf, &scsi_inquiry_response, NULL);
 
   /*
    *

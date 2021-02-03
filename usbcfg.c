@@ -17,7 +17,6 @@
 #include "ch.h"
 #include "hal.h"
 
-#include "hal_usb_cdc.h"
 #include "hal_usb_msd.h"
 #include "usbcfg.h"
 
@@ -114,11 +113,11 @@ static const uint8_t vcom_string1[] = {
  * Device Description string.
  */
 static const uint8_t vcom_string2[] = {
-  USB_DESC_BYTE(42),                    /* bLength.                         */
+  USB_DESC_BYTE(46),                    /* bLength.                         */
   USB_DESC_BYTE(USB_DESCRIPTOR_STRING), /* bDescriptorType.                 */
-  'C', 0, 'h', 0, 'i', 0, 'b', 0, 'i', 0, 'U', 0, 'F', 0, '2', 0,
-  ' ', 0, 'B', 0, 'o', 0, 'o', 0, 't', 0, 'l', 0, 'o', 0, 'a', 0,
-  'd', 0, 'e', 0, 'r', 0, 'r', 0
+  'U', 0, 'F', 0, '2', 0, '-', 0, 'C', 0, 'h', 0, 'i', 0, 'b', 0,
+  'i', 0, 'O', 0, 'S', 0, ' ', 0, 'B', 0, 'o', 0, 'o', 0, 't', 0,
+  'l', 0, 'o', 0, 'a', 0, 'd', 0, 'e', 0, 'r', 0
 };
 
 static uint8_t descriptor_serial_string[] = {
