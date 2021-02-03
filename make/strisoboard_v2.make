@@ -202,6 +202,10 @@ prog: all
 prog_openocd: all
 	openocd -f interface/stlink.cfg -f target/stm32h7x.cfg -c "program $(BUILDDIR)/$(PROJECT).elf reset exit"
 
+# Launch GDB via openocd debugger
+gdb:
+	gdb-multiarch $(BUILDDIR)/$(PROJECT).elf -ex "tar extended-remote | openocd -f interface/stlink.cfg -f target/stm32h7x.cfg -c \"stm32h7x.cpu configure -rtos auto; gdb_port pipe; log_output openocd.log\""
+
 version:
 	@echo $(GITVERSION)
 
