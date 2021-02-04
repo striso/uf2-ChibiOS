@@ -93,18 +93,18 @@ void flash_write(uint32_t dst, const uint8_t *src, int len, bool failsafe) {
 	}
 
 	// check if flash is really empty, otherwise ECC errors might be created
-	if (is_blank(dst, len)) {
-		for (int i = 0; i < len; i += 4) {
-			// flash_program_word(dst + i, *(uint32_t*)(src + i));
-			HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, dst + i, (uint32_t)src + i);
-		}
-	} else {
+	if (!is_blank(dst, len)) {
 		// PANIC("flash to write is not empty");
 		// TODO: better error handling
 		while (true) {
+			usbDisconnectBus(&USBD1);
 			palToggleLine(PORTAB_BLINK_LED);
 			chThdSleepMilliseconds(30);
 		}
+	}
+
+	for (int i = 0; i < len; i += 4) {
+		HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, dst + i, (uint32_t)src + i);
 	}
 
 	// TODO: implement error checking
