@@ -72,25 +72,24 @@ void flash_write(uint32_t dst, const uint8_t *src, int len, bool failsafe) {
 		return; //PANIC("invalid sector");
 	}
 
-
 	HAL_FLASH_Unlock();
 
-	if (!erasedSectors[sector] && (failsafe || !is_blank(addr, size))) {
+	if (!erasedSectors[sector]) {
+		if (failsafe || !is_blank(addr, size)) {
+			FLASH_EraseInitTypeDef eraseInit;
+			eraseInit.TypeErase = FLASH_TYPEERASE_SECTORS;
+			eraseInit.Banks = flash_sectors[sector].bank;
+			eraseInit.Sector = flash_sectors[sector].sector_number;
+			eraseInit.NbSectors = 1;
+			eraseInit.VoltageRange = FLASH_VOLTAGE_RANGE_3;
+
+			uint32_t sectorError = 0;
+			HAL_FLASHEx_Erase(&eraseInit, &sectorError);
+
+			// if (!is_blank(addr, size) | (sectorError != 0xffffffff))
+			// 	PANIC("failed to erase!");
+		}
 		erasedSectors[sector] = 1; // don't erase anymore - we will continue writing here!
-		// flash_erase_sector(sector, FLASH_CR_PROGRAM_X32);
-
-		FLASH_EraseInitTypeDef eraseInit;
-		eraseInit.TypeErase = FLASH_TYPEERASE_SECTORS;
-		eraseInit.Banks = flash_sectors[sector].bank;
-		eraseInit.Sector = flash_sectors[sector].sector_number;
-		eraseInit.NbSectors = 1;
-		eraseInit.VoltageRange = FLASH_VOLTAGE_RANGE_3;
-
-		uint32_t sectorError = 0;
-		HAL_FLASHEx_Erase(&eraseInit, &sectorError);
-
-		// if (!is_blank(addr, size) | (sectorError != 0xffffffff))
-		// 	PANIC("failed to erase!");
 	}
 
 	// check if flash is really empty, otherwise ECC errors might be created
