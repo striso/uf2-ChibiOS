@@ -223,10 +223,14 @@ static void usb_event(USBDriver *usbp, usbevent_t event) {
     return;
   case USB_EVENT_CONFIGURED:
     chSysLockFromISR();
-    /* Enables the endpoints specified into the configuration.
-       Note, this callback is invoked from an ISR so I-Class functions
-       must be used.*/
-    usbInitEndpointI(usbp, USBD1_DATA_REQUEST_EP, &ep1config);
+    if (usbp->state == USB_ACTIVE) {
+      /* Enables the endpoints specified into the configuration.
+         Note, this callback is invoked from an ISR so I-Class functions
+         must be used.*/
+      usbInitEndpointI(usbp, USBD1_DATA_REQUEST_EP, &ep1config);
+    } else if (usbp->state == USB_SELECTED) {
+      usbDisableEndpointsI(usbp);
+    }
     chSysUnlockFromISR();
     return;
   case USB_EVENT_UNCONFIGURED:
