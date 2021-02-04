@@ -92,6 +92,8 @@ void flash_write(uint32_t dst, const uint8_t *src, int len, bool failsafe) {
 		erasedSectors[sector] = 1; // don't erase anymore - we will continue writing here!
 	}
 
+	// invalidate flash buffer after it may have been erased
+	cacheBufferInvalidate(dst, len);
 	// check if flash is really empty, otherwise ECC errors might be created
 	if (!is_blank(dst, len)) {
 		// PANIC("flash to write is not empty");
