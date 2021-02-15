@@ -85,6 +85,7 @@ endif
 
 # Define project name here
 PROJECT = flasher
+BOARD = strisoboard_v2
 
 # Target settings.
 MCU  = cortex-m7
@@ -92,11 +93,11 @@ MCU  = cortex-m7
 # Imported source files and paths
 CHIBIOS  := ./ChibiOS
 CHIBIOS_CONTRIB := $(CHIBIOS)/../ChibiOS-Contrib
-CONFDIR  := ./cfg/strisoboard_v2
-BUILDDIR_BOOTLOADER := ./build/strisoboard_v2
+CONFDIR  := ./cfg/$(BOARD)
+BUILDDIR_BOOTLOADER := ./build/$(BOARD)
 BUILDDIR := $(BUILDDIR_BOOTLOADER)/flasher
-DEPDIR   := ./.dep/strisoboard_v2_flasher
-BOARDDIR := ./board/strisoboard_v2
+DEPDIR   := ./.dep/$(BOARD)_flasher
+BOARDDIR := ./board/$(BOARD)
 
 # Licensing files.
 include $(CHIBIOS)/os/license/license.mk
@@ -111,11 +112,7 @@ include $(CHIBIOS)/os/hal/osal/rt-nil/osal.mk
 include $(CHIBIOS)/os/rt/rt.mk
 include $(CHIBIOS)/os/common/ports/ARMCMx/compilers/GCC/mk/port_v7m.mk
 # Other files (optional).
-# include $(CHIBIOS)/test/lib/test.mk
-# include $(CHIBIOS)/test/rt/rt_test.mk
-# include $(CHIBIOS)/test/oslib/oslib_test.mk
 include $(CHIBIOS)/os/hal/lib/streams/streams.mk
-# include $(CHIBIOS)/os/various/shell/shell.mk
 
 # Define linker script file here
 # LDSCRIPT= $(STARTUPLD)/STM32H743xI.ld
@@ -191,7 +188,7 @@ BINARY = $(BUILDDIR_BOOTLOADER)/bootloader.bin
 
 .PHONY: $(BINARY)
 $(BINARY):
-	$(MAKE) -f make/strisoboard_v2.make all
+	$(MAKE) -f make/$(BOARD).make all
 
 $(BUILDDIR)/bootloader_bin.c: $(BINARY)
 	@mkdir -p $(BUILDDIR)

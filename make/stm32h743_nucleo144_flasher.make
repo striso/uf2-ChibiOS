@@ -85,6 +85,7 @@ endif
 
 # Define project name here
 PROJECT = flasher
+BOARD = stm32h743_nucleo144
 
 # Target settings.
 MCU  = cortex-m7
@@ -92,10 +93,10 @@ MCU  = cortex-m7
 # Imported source files and paths
 CHIBIOS  := ./ChibiOS
 CHIBIOS_CONTRIB := $(CHIBIOS)/../ChibiOS-Contrib
-CONFDIR  := ./cfg/stm32h743_nucleo144
-BUILDDIR_BOOTLOADER := ./build/stm32h743_nucleo144
+CONFDIR  := ./cfg/$(BOARD)
+BUILDDIR_BOOTLOADER := ./build/$(BOARD)
 BUILDDIR := $(BUILDDIR_BOOTLOADER)/flasher
-DEPDIR   := ./.dep/stm32h743_nucleo144_flasher
+DEPDIR   := ./.dep/$(BOARD)_flasher
 BOARDDIR := ./board/ST_NUCLEO144_H743ZI
 
 # Licensing files.
@@ -187,7 +188,7 @@ BINARY = $(BUILDDIR_BOOTLOADER)/bootloader.bin
 
 .PHONY: $(BINARY)
 $(BINARY):
-	$(MAKE) -f make/stm32h743_nucleo144.make all
+	$(MAKE) -f make/$(BOARD).make all
 
 $(BUILDDIR)/bootloader_bin.c: $(BINARY)
 	@mkdir -p $(BUILDDIR)

@@ -90,6 +90,7 @@ endif
 
 # Define project name here
 PROJECT = bootloader
+BOARD = strisoboard_v2
 
 # Target settings.
 MCU  = cortex-m7
@@ -97,10 +98,10 @@ MCU  = cortex-m7
 # Imported source files and paths
 CHIBIOS  := ./ChibiOS
 CHIBIOS_CONTRIB := $(CHIBIOS)/../ChibiOS-Contrib
-CONFDIR  := ./cfg/strisoboard_v2
-BUILDDIR := ./build/strisoboard_v2
-DEPDIR   := ./.dep/strisoboard_v2
-BOARDDIR := ./board/strisoboard_v2
+CONFDIR  := ./cfg/$(BOARD)
+BUILDDIR := ./build/$(BOARD)
+DEPDIR   := ./.dep/$(BOARD)
+BOARDDIR := ./board/$(BOARD)
 
 # Licensing files.
 include $(CHIBIOS)/os/license/license.mk
@@ -164,7 +165,7 @@ CPPWARN = -Wall -Wextra -Wundef
 
 # Git revision description, recompile anything depending on uf2cfg.h on version change
 GITVERSION := $(shell git --no-pager show --date=short --format="%ad" --name-only | head -n1)_$(shell git --no-pager describe --tags --always --long --dirty)
-# GITVERSION := $(shell git --no-pager describe --tags --always --long --dirty)
+GITVERSION_NODATE := $(shell git --no-pager describe --tags --always --long --dirty)
 ifneq ($(GITVERSION), $(shell cat .git_version 2>&1))
 $(shell echo -n $(GITVERSION) > .git_version)
 $(shell touch uf2cfg.h)
@@ -194,7 +195,12 @@ ULIBS =
 #
 
 flasher: all
-	$(MAKE) -f make/strisoboard_v2_flasher.make
+	$(MAKE) -f make/$(BOARD)_flasher.make
+
+release: flasher
+	mkdir -p releases
+	cp $(BUILDDIR)/$(PROJECT).bin releases/$(BOARD)_$(PROJECT)_$(GITVERSION_NODATE).bin
+	cp $(BUILDDIR)/flasher.uf2 releases/$(BOARD)_$(PROJECT)_$(GITVERSION_NODATE).uf2
 
 prog: all
 	dfu-util -d0483:df11 -a0 -s0x8000000:leave -D $(BUILDDIR)/$(PROJECT).bin

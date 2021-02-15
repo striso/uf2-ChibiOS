@@ -90,6 +90,7 @@ endif
 
 # Define project name here
 PROJECT = bootloader
+BOARD = stm32h743_nucleo144
 
 # Target settings.
 MCU  = cortex-m7
@@ -97,9 +98,9 @@ MCU  = cortex-m7
 # Imported source files and paths
 CHIBIOS  := ./ChibiOS
 CHIBIOS_CONTRIB := $(CHIBIOS)/../ChibiOS-Contrib
-CONFDIR  := ./cfg/stm32h743_nucleo144
-BUILDDIR := ./build/stm32h743_nucleo144
-DEPDIR   := ./.dep/stm32h743_nucleo144
+CONFDIR  := ./cfg/$(BOARD)
+BUILDDIR := ./build/$(BOARD)
+DEPDIR   := ./.dep/$(BOARD)
 BOARDDIR := ./board/ST_NUCLEO144_H743ZI
 
 # Licensing files.
@@ -164,7 +165,7 @@ CPPWARN = -Wall -Wextra -Wundef
 
 # Git revision description, recompile anything depending on uf2cfg.h on version change
 GITVERSION := $(shell git --no-pager show --date=short --format="%ad" --name-only | head -n1)_$(shell git --no-pager describe --tags --always --long --dirty)
-# GITVERSION := $(shell git --no-pager describe --tags --always --long --dirty)
+GITVERSION_NODATE := $(shell git --no-pager describe --tags --always --long --dirty)
 ifneq ($(GITVERSION), $(shell cat .git_version 2>&1))
 $(shell echo -n $(GITVERSION) > .git_version)
 $(shell touch uf2cfg.h)
@@ -194,13 +195,22 @@ ULIBS =
 #
 
 flasher: all
-	$(MAKE) -f make/stm32h743_nucleo144_flasher.make
+	$(MAKE) -f make/$(BOARD)_flasher.make
+
+release: flasher
+	mkdir -p releases
+	cp $(BUILDDIR)/$(PROJECT).bin releases/$(BOARD)_$(PROJECT)_$(GITVERSION_NODATE).bin
+	cp $(BUILDDIR)/flasher.uf2 releases/$(BOARD)_$(PROJECT)_$(GITVERSION_NODATE).uf2
 
 prog: all
 	dfu-util -d0483:df11 -a0 -s0x8000000:leave -D $(BUILDDIR)/$(PROJECT).bin
 
 prog_openocd: all
 	openocd -f interface/stlink.cfg -f target/stm32h7x.cfg -c "program $(BUILDDIR)/$(PROJECT).elf reset exit"
+
+# Launch GDB via openocd debugger
+gdb:
+	gdb-multiarch $(BUILDDIR)/$(PROJECT).elf -ex "tar extended-remote | openocd -f interface/stlink.cfg -f target/stm32h7x.cfg -c \"stm32h7x.cpu configure -rtos auto; gdb_port pipe; log_output openocd.log\""
 
 version:
 	@echo $(GITVERSION)
