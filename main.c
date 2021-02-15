@@ -106,6 +106,15 @@ void pre_clock_init(void) {
     try_boot = false;
   }
 
+  /* Check backup register for soft boot into app */
+  if (RTC->BKP0R == APP_RTC_SIGNATURE) {
+    // Enable writing to backup domain
+    PWR->CR1 |= PWR_CR1_DBP;
+    // reset signature
+    RTC->BKP0R = 0;
+    try_boot = true;
+  }
+
   /* Check backup register for soft boot into bootloader */
   if (RTC->BKP0R == BOOTLOADER_RTC_SIGNATURE) {
     // Enable writing to backup domain
