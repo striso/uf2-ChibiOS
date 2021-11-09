@@ -34,6 +34,9 @@
 #define BOARD_FLASH_SECTORS 16
 #define BOARD_FLASH_SIZE (2 * 1024 * 1024)
 
+// UF2 Family ID - picked at random
+#define UF2_FAMILY 0x6db66082 // generic STM32H7
+
 // #define PORTAB_USB1                 USBD1
 
 // #define PORTAB_SDU1                 SDU1
@@ -44,6 +47,8 @@
 #define PORTAB_FLASHER_SKIP_LED     LINE_LED1
 #define PORTAB_BOOTLOADER_BUTTON    LINE_BUTTON
 #define PORTAB_BOOTLOADER_BUTTON_PRESSED    1
+//#define PORTAB_FAILSAFE_BUTTON      LINE_BUTTON2
+//#define PORTAB_FAILSAFE_BUTTON_PRESSED      1
 
 /*===========================================================================*/
 /* Module pre-compile time settings.                                         */

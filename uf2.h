@@ -25,7 +25,7 @@ DEALINGS IN THE SOFTWARE.
 #ifndef UF2FORMAT_H
 #define UF2FORMAT_H 1
 
-#include "hw_config.h"
+#include "portab.h"
 #include "uf2cfg.h"
 
 #include <stdint.h>
