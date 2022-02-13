@@ -437,9 +437,13 @@ static void write_block_core(uint32_t block_no, const uint8_t *data, bool quiet,
             }
             if (state->numWritten >= state->numBlocks) {
                 // wait a little bit before resetting, to avoid Windows transmit error
+                // a bit longer than 30ms to avoid Gnome transmit error
+                // Actually it feels better to have a little delay, 30ms feels
+                // too fast for firmware to really update, 500ms feels more like
+                // a realistic time :)
                 // https://github.com/Microsoft/uf2-samd21/issues/11
                 if (!quiet) {
-                    uf2_timer_start(30);
+                    uf2_timer_start(500);
                     isSet = true;
                 }
             }
