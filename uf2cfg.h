@@ -8,7 +8,7 @@
 #define INDEX_URL "http://www.striso.org"
 #define VOLUME_LABEL "StrisoFW"
 // Size of the USB drive
-#define UF2_NUM_BLOCKS (8000000/512)
+#define UF2_NUM_BLOCKS (16000000/512)
 // Where the UF2 files are allowed to write data
 #define USER_FLASH_START 0x08020000
 #define USER_FLASH_END (0x08000000+BOARD_FLASH_SIZE)
