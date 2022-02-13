@@ -80,9 +80,11 @@ int main(void) {
   // self destruct
   // note: writing flash that's not empty is dangerous, it could mess up ECC
   // TODO: Check if this is safe
-  uint32_t empty = 0;
-  HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, APP_LOAD_ADDRESS, (uint32_t)&empty);
-  HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, APP_LOAD_ADDRESS + 4, (uint32_t)&empty);
+  // For now disable self destruct, since it doesn't write flash if the bootloader is
+  // already equal it doesn't harm to run it again.
+  // uint32_t empty = 0;
+  // HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, APP_LOAD_ADDRESS, (uint32_t)&empty);
+  // HAL_FLASH_Program(FLASH_TYPEPROGRAM_FLASHWORD, APP_LOAD_ADDRESS + 4, (uint32_t)&empty);
 
   HAL_FLASH_Lock();
 
