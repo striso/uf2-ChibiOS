@@ -44,8 +44,7 @@ DEALINGS IN THE SOFTWARE.
 #define UF2_IS_MY_FAMILY(bl)                                                                       \
     (((bl)->flags & UF2_FLAG_FAMILYID_PRESENT) == 0 || (bl)->familyID == UF2_FAMILY)
 
-
-#define MAX_BLOCKS (BOARD_FLASH_SIZE / 256 + 100)
+#define MAX_BLOCKS UF2_NUM_BLOCKS
 typedef struct {
     uint32_t numBlocks;
     uint32_t numWritten;
