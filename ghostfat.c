@@ -382,16 +382,29 @@ int read_block(uint32_t block_no, uint8_t *data) {
     return 0;
 }
 
-static void write_block_core(uint32_t block_no, const uint8_t *data, bool quiet,
-                             WriteState *state) {
+WriteState wrState; // zero initialized
+
+int write_block(uint32_t block_no, const uint8_t *data) {
+    (void)block_no;
     const UF2_Block *bl = (const void *)data;
 
-    (void)block_no;
+    if (!is_uf2_block(bl) || !UF2_IS_MY_FAMILY(bl) ||
+        bl->numBlocks == 0 || bl->numBlocks >= MAX_BLOCKS) {
+        return 0;
+    }
 
-    // DBG("Write magic: %x", bl->magicStart0);
+    if (wrState.numBlocks == 0) {
+        wrState.numBlocks = bl->numBlocks;
+    }
 
-    if (!is_uf2_block(bl) || !UF2_IS_MY_FAMILY(bl)) {
-        return;
+    if (wrState.numWritten >= wrState.numBlocks) {
+        // writing finished, don't attempt to write more
+        return 0;
+    }
+
+    if (bl->numBlocks != wrState.numBlocks ||
+        bl->blockNo >= bl->numBlocks) {
+        return 0; // TODO: error handling?
     }
 
     bool UID_check = true;
@@ -405,62 +418,39 @@ static void write_block_core(uint32_t block_no, const uint8_t *data, bool quiet,
 #endif
 
     palSetLine(PORTAB_STATUS_LED);
-    if ((bl->flags & UF2_FLAG_NOFLASH) || bl->payloadSize > 256 || (bl->targetAddr & 0xff) ||
-        !VALID_FLASH_ADDR(bl->targetAddr, bl->payloadSize) || !UID_check) {
-        DBG("Skip block at %x", bl->targetAddr);
-        // this happens when we're trying to re-flash CURRENT.UF2 file previously
-        // copied from a device; we still want to count these blocks to reset properly
+
+    uint8_t mask = 1 << (bl->blockNo % 8);
+    uint32_t pos = bl->blockNo / 8;
+    if (!(wrState.writtenMask[pos] & mask)) {
+        wrState.writtenMask[pos] |= mask;
+        wrState.numWritten++;
+
+        if ((bl->flags & UF2_FLAG_NOFLASH) || bl->payloadSize > 256 || (bl->targetAddr & 0xff) ||
+            !VALID_FLASH_ADDR(bl->targetAddr, bl->payloadSize) || !UID_check) {
+            DBG("Skip block at %x", bl->targetAddr);
+            // this happens when we're trying to re-flash CURRENT.UF2 file previously
+            // copied from a device; we still want to count these blocks to reset properly
+        } else {
+            DBG("Write block at %x", bl->targetAddr);
+            // TODO: wait with writing APP_LOAD_ADDRESS until last block is written
+            flash_write(bl->targetAddr, bl->data, bl->payloadSize, failsafe_mode);
+        }
+    }
+    if (wrState.numWritten >= wrState.numBlocks) {
+        // wait a little bit before resetting, to avoid Windows transmit error
+        // https://github.com/Microsoft/uf2-samd21/issues/11
+        // a bit longer than 30ms to avoid Gnome transmit error
+        // Actually it feels better to have a little delay, 30ms feels
+        // too fast for firmware to really update, 500ms feels more like
+        // a realistic time :)
+        uf2_timer_start(500);
     } else {
-        // logval("write block at", bl->targetAddr);
-        DBG("Write block at %x", bl->targetAddr);
-        // TODO: wait with writing APP_LOAD_ADDRESS until last block is written
-        flash_write(bl->targetAddr, bl->data, bl->payloadSize, failsafe_mode);
-    }
-    palClearLine(PORTAB_STATUS_LED);
-
-    bool isSet = false;
-
-    if (state && bl->numBlocks) {
-        if (state->numBlocks != bl->numBlocks) {
-            if (bl->numBlocks >= MAX_BLOCKS || state->numBlocks)
-                state->numBlocks = 0xffffffff;
-            else
-                state->numBlocks = bl->numBlocks;
-        }
-        if (bl->blockNo < MAX_BLOCKS) {
-            uint8_t mask = 1 << (bl->blockNo % 8);
-            uint32_t pos = bl->blockNo / 8;
-            if (!(state->writtenMask[pos] & mask)) {
-                // logval("incr", state->numWritten);
-                state->writtenMask[pos] |= mask;
-                state->numWritten++;
-            }
-            if (state->numWritten >= state->numBlocks) {
-                // wait a little bit before resetting, to avoid Windows transmit error
-                // a bit longer than 30ms to avoid Gnome transmit error
-                // Actually it feels better to have a little delay, 30ms feels
-                // too fast for firmware to really update, 500ms feels more like
-                // a realistic time :)
-                // https://github.com/Microsoft/uf2-samd21/issues/11
-                if (!quiet) {
-                    uf2_timer_start(500);
-                    isSet = true;
-                }
-            }
-        }
-        // DBG("wr %d=%d (of %d)", state->numWritten, bl->blockNo, bl->numBlocks);
-    }
-
-    // if the next block is not received within 500 ms, reset
-    if (!isSet && !quiet) {
+        // if the next block is not received within 500 ms, reset
         uf2_timer_start(500);
     }
-}
 
-WriteState wrState;
+    palClearLine(PORTAB_STATUS_LED);
 
-int write_block(uint32_t lba, const uint8_t *copy_from) {
-    write_block_core(lba, copy_from, false, &wrState);
     return 0;
 }
 

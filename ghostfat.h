@@ -33,6 +33,6 @@ void ghostfat_1ms(void);
 void ghostfat_init(void);
 
 int read_block(uint32_t block_no, uint8_t *data);
-int write_block(uint32_t lba, const uint8_t *copy_from);
+int write_block(uint32_t block_no, const uint8_t *data);
 
 #endif /* GHOSTDISK_H_ */
